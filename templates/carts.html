@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-2">
+    <h2 class="mb-4 text-center fw-bold">Giỏ Hàng Của Bạn</h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <table class="table align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Sản phẩm</th>
+                                <th>Giá</th>
+                                <th>Số lượng</th>
+                                <th>Tổng</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="cart-items"></tbody>
+                    </table>
+                    
+                    <div id="empty-cart-msg" class="text-center py-5 d-none">
+                        <p class="text-muted">Giỏ hàng đang trống.</p>
+                        <a href="/" class="btn btn-primary rounded-pill">Mua sắm ngay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Tổng quan</h5>
+                    <div class="d-flex justify-content-between mb-3 fs-5">
+                        <span>Tạm tính:</span>
+                        <span class="fw-bold text-danger" id="cart-total">0 ₫</span>
+                    </div>
+                    <hr>
+                    
+                    <a href="/orders/checkout/" id="btn-checkout" class="btn btn-success w-100 py-2 fw-bold rounded-pill mb-2">
+                        Tiến Hành Thanh Toán
+                    </a>
+                    
+                    <button onclick="clearCart()" class="btn btn-outline-danger w-100 py-2 rounded-pill">
+                        Xóa tất cả
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("access");
+    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+    function loadCart() {
+        if (!token) return;
+        fetch('/carts/api/', { headers })
+            .then(res => res.json())
+            .then(renderCart);
+    }
+
+    function renderCart(cart) {
+        const tbody = document.getElementById('cart-items');
+        const emptyMsg = document.getElementById('empty-cart-msg');
+        const btnCheckout = document.getElementById('btn-checkout');
+        const totalEl = document.getElementById('cart-total');
+
+        tbody.innerHTML = '';
+        if (!cart.items || cart.items.length === 0) {
+            emptyMsg.classList.remove('d-none');
+            totalEl.innerText = '0 ₫';
+            btnCheckout.classList.add('disabled'); // Khóa nút nếu rỗng
+            return;
+        }
+
+        emptyMsg.classList.add('d-none');
+        btnCheckout.classList.remove('disabled');
+
+        tbody.innerHTML = cart.items.map(item => `
+            <tr>
+                <td class="ps-4">
+                    <div class="fw-bold">${item.product.name}</div>
+                </td>
+                <td>${item.product.price.toLocaleString()} ₫</td>
+                <td>
+                    <div class="btn-group btn-group-sm border rounded">
+                        <button class="btn btn-white" onclick="updateQty(${item.id}, ${item.quantity - 1})">-</button>
+                        <span class="px-2 py-1">${item.quantity}</span>
+                        <button class="btn btn-white" onclick="updateQty(${item.id}, ${item.quantity + 1})">+</button>
+                    </div>
+                </td>
+                <td class="fw-bold">${item.sub_total.toLocaleString()} ₫</td>
+                <td><button class="btn text-danger" onclick="updateQty(${item.id}, 0)">X</button></td>
+            </tr>
+        `).join('');
+        totalEl.innerText = cart.total_price.toLocaleString() + ' ₫';
+    }
+
+    function updateQty(id, qty) {
+        fetch('/carts/api/update/', {
+            method: 'POST', headers, body: JSON.stringify({ item_id: id, quantity: qty })
+        }).then(res => res.json()).then(renderCart);
+    }
+
+    function clearCart() {
+        if(confirm("Xóa sạch giỏ hàng?")) {
+            fetch('/carts/api/', { method: 'DELETE', headers }).then(() => loadCart());
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadCart);
+</script>
+{% endblock %}

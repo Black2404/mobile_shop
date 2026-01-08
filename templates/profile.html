@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    /* Giữ nguyên CSS cũ của bạn */
+    .profile-container { max-width: 800px; margin: 50px auto; }
+    .profile-card { border: none; border-radius: 15px; overflow: hidden; background: #fff; }
+    .profile-header-bg { background: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%); height: 110px; position: relative; }
+    .profile-avatar-wrapper { position: absolute; bottom: -40px; left: 40px; }
+    .profile-avatar {
+        width: 100px; height: 100px; border-radius: 50%; border: 5px solid #fff;
+        background: #f8f9fa; display: flex; align-items: center; justify-content: center;
+        font-size: 2.5rem; color: #0d6efd; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .profile-body { padding: 60px 40px 40px; }
+    .info-label { font-size: 0.85rem; color: #6c757d; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+    .info-value { font-size: 1.1rem; font-weight: 600; color: #212529; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #f1f1f1; }
+    .role-badge { padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+
+    /* CSS bổ sung để input khớp với giao diện cũ */
+    .edit-input {
+        width: 100%; border: 1px solid #0d6efd; border-radius: 5px;
+        padding: 5px 10px; font-size: 1rem; font-weight: 500; outline: none;
+    }
+    .d-none { display: none !important; }
+</style>
+
+<div class="container profile-container">
+    <div class="card profile-card shadow">
+        <div class="profile-header-bg">
+            <div class="profile-avatar-wrapper">
+                <div class="profile-avatar"><i class="bi bi-person-fill"></i></div>
+            </div>
+        </div>
+        
+        <div class="profile-body">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 id="view-name" class="mb-0">Đang tải...</h3>
+                    <input type="text" id="edit-name" class="edit-input d-none" style="font-size: 1.5rem; font-weight: bold;">
+                    <span id="display-role" class="badge bg-primary role-badge mt-2">...</span>
+                </div>
+                <div>
+                    <button id="btn-edit-mode" class="btn btn-outline-primary btn-sm" onclick="toggleEdit(true)">
+                        <i class="bi bi-pencil"></i> Chỉnh sửa
+                    </button>
+                    <div id="edit-actions" class="d-none">
+                        <button class="btn btn-success btn-sm" onclick="saveProfile()">Lưu</button>
+                        <button class="btn btn-light btn-sm" onclick="toggleEdit(false)">Hủy</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-5">
+                <div class="col-md-6">
+                    <div class="info-label">Email tài khoản (Cố định)</div>
+                    <div id="display-email" class="info-value">...</div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="info-label">ID tài khoản</div>
+                    <div id="display-id" class="info-value">...</div>
+                </div>
+
+                <div class="col-12">
+                    <div class="info-label">Địa chỉ giao hàng</div>
+                    <div id="view-address" class="info-value">Chưa cập nhật</div>
+                    <div id="wrapper-address" class="d-none mb-3">
+                        <input type="text" id="edit-address" class="edit-input">
+                    </div>
+                </div>
+
+                <div id="password-section" class="col-12 d-none">
+                    <div class="info-label text-primary">Mật khẩu mới (Để trống nếu không đổi)</div>
+                    <div class="mb-3">
+                        <input type="password" id="edit-password" class="edit-input" placeholder="********">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadProfile() {
+    const token = localStorage.getItem('access');
+    if (!token) { window.location.href = '/login/'; return; }
+
+    try {
+        const response = await fetch('/api/profile/', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (response.ok) {
+            const user = await response.json();
+            // Cập nhật chế độ xem
+            document.getElementById('view-name').innerText = user.name;
+            document.getElementById('display-email').innerText = user.email;
+            document.getElementById('display-id').innerText = `#${user.id}`;
+            document.getElementById('display-role').innerText = user.role.toUpperCase();
+            document.getElementById('view-address').innerText = user.address || 'Chưa cập nhật';
+
+            // Đổ dữ liệu vào các ô input sẵn
+            document.getElementById('edit-name').value = user.name;
+            document.getElementById('edit-address').value = user.address || '';
+        }
+    } catch (error) { console.error("Lỗi:", error); }
+}
+
+function toggleEdit(isEditing) {
+    // Hiện/Ẩn text và input
+    document.getElementById('view-name').classList.toggle('d-none', isEditing);
+    document.getElementById('edit-name').classList.toggle('d-none', !isEditing);
+    
+    document.getElementById('view-address').classList.toggle('d-none', isEditing);
+    document.getElementById('wrapper-address').classList.toggle('d-none', !isEditing);
+    
+    document.getElementById('password-section').classList.toggle('d-none', !isEditing);
+    
+    // Hiện/Ẩn nút bấm
+    document.getElementById('btn-edit-mode').classList.toggle('d-none', isEditing);
+    document.getElementById('edit-actions').classList.toggle('d-none', !isEditing);
+}
+
+async function saveProfile() {
+    const token = localStorage.getItem('access');
+    const data = {
+        name: document.getElementById('edit-name').value,
+        address: document.getElementById('edit-address').value
+    };
+
+    const password = document.getElementById('edit-password').value;
+    if (password) data.password = password;
+
+    try {
+        const response = await fetch('/api/profile/', {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            alert("Cập nhật thành công!");
+            toggleEdit(false);
+            loadProfile();
+        } else {
+            alert("Lỗi khi cập nhật.");
+        }
+    } catch (error) { console.error("Lỗi:", error); }
+}
+
+loadProfile();
+</script>
+{% endblock %}

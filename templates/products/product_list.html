@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container py-2">
+    <h2 class="fw-bold text-dark mb-3 text-center">Danh sách điện thoại</h2>
+
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-4 mb-2">
+            <input
+                type="text"
+                id="search"
+                class="form-control form-control-sm shadow-sm"
+                placeholder="Tìm kiếm sản phẩm..."
+                oninput="filterProducts()"
+                style="border-radius: 8px; padding: 8px 15px;"
+            >
+        </div>
+        <div class="col-md-2 mb-2">
+            <select id="brandFilter" class="form-select form-select-sm shadow-sm" onchange="filterProducts()" style="border-radius: 8px; padding: 8px;">
+                <option value="">-- Tất cả hãng --</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3" id="product-list">
+        </div>
+</div>
+
+<style>
+    .product-card {
+        border: 1px solid #eee;
+        border-radius: 8px;
+        transition: all 0.2s ease-in-out;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .card-img-top {
+        height: 180px;
+        object-fit: contain;
+        padding: 10px;
+    }
+    .product-info { padding: 10px; text-align: center; }
+    .product-name { font-weight: 600; font-size: 0.95rem; display: block; margin-bottom: 5px; height: 40px; overflow: hidden; }
+    .price-text { color: #dc3545; font-weight: bold; font-size: 1rem; display: block; margin-bottom: 10px; }
+    .btn-detail { font-size: 0.85rem; border-radius: 20px; padding: 5px 20px; }
+</style>
+
+<script>
+    let products = [];
+
+    // LOAD DỮ LIỆU
+    async function loadProducts() {
+        try {
+            // --- SỬA Ở ĐÂY: Gọi đúng API /products/api/ ---
+            const res = await fetch('/products/api/'); 
+            
+            products = await res.json();
+            renderProducts(products);
+            loadBrands(products);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function renderProducts(data) {
+        const html = data.map(p => `
+        <div class="col">
+            <div class="card h-100 product-card">
+                <img src="${p.image || 'https://via.placeholder.com/150'}" class="card-img-top">
+                <div class="product-info">
+                    <span class="product-name">${p.name}</span>
+                    <span class="price-text">${p.price.toLocaleString()} đ</span>
+                    
+                    <a href="/products/${p.id}/" class="btn btn-primary btn-detail">
+                        Xem chi tiết
+                    </a>
+                </div>
+            </div>
+        </div>
+        `).join('');
+
+        document.getElementById("product-list").innerHTML = html;
+    }
+
+    // LOAD BRAND FILTER
+    function loadBrands(data) {
+        const brands = [...new Set(data.map(p => p.brand_name))];
+        const select = document.getElementById("brandFilter");
+        // Reset option
+        select.innerHTML = '<option value="">-- Tất cả hãng --</option>';
+
+        brands.forEach(b => {
+            if(b) {
+                const option = document.createElement("option");
+                option.value = b;
+                option.textContent = b;
+                select.appendChild(option);
+            }
+        });
+    }
+
+    // FILTER
+    function filterProducts() {
+        const keyword = document.getElementById("search").value.toLowerCase();
+        const brand = document.getElementById("brandFilter").value;
+
+        const filtered = products.filter(p => {
+            const matchName = p.name.toLowerCase().includes(keyword);
+            const matchBrand = brand === "" || p.brand_name === brand;
+            return matchName && matchBrand;
+        });
+
+        renderProducts(filtered);
+    }
+
+    document.addEventListener("DOMContentLoaded", loadProducts);
+</script>
+{% endblock %}

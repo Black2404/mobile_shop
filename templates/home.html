@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="text-center mb-5 mt-3 pt-4">
+    <h3 class="fw-bold text-dark mb-1">Sản phẩm mới nhất tại cửa hàng</h3>
+</div>
+
+<div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-4" id="product-list">
+    <div class="col-12 text-center py-5">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <p class="small mt-2 text-muted">Đang tải dữ liệu...</p>
+    </div>
+</div>
+
+<style>
+    .product-card {
+        border: 1px solid #f0f0f0; border-radius: 12px;
+        transition: all 0.3s; background: #fff; height: 100%; display: flex; flex-direction: column;
+    }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-color: #0d6efd; }
+    .img-container { height: 180px; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .img-container img { max-height: 100%; max-width: 100%; object-fit: contain; }
+    .product-info { padding: 15px; padding-top: 0; flex-grow: 1; display: flex; flex-direction: column; }
+    .product-name { font-weight: 700; color: #222; margin-bottom: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+    .brand-text { font-size: 0.8rem; color: #888; margin-bottom: 8px; }
+    .price-text { color: #d9534f; font-weight: 700; margin-bottom: 15px; }
+    .btn-detail { margin-top: auto; font-size: 0.8rem; font-weight: 600; }
+</style>
+
+<script>
+    fetch('/products/api/')
+    .then(res => res.json())
+    .then(products => {
+        let html = '';
+        if (products.length === 0) {
+            html = '<div class="col-12 text-center py-5 text-muted small">Không tìm thấy sản phẩm nào.</div>';
+        } else {
+            products.forEach(p => {
+                const imgPath = p.image ? p.image : 'https://placehold.co/300x300/ffffff/cccccc?text=NO+IMAGE';
+                html += `
+                <div class="col">
+                    <div class="card product-card border-0 shadow-sm">
+                        <div class="img-container"><img src="${imgPath}" alt="${p.name}"></div>
+                        <div class="product-info">
+                            <div class="product-name" title="${p.name}">${p.name}</div>
+                            <div class="brand-text">${p.brand_name || 'Hãng'}</div>
+                            <div class="price-text">${p.price.toLocaleString()} đ</div>
+                            <a href="/products/${p.id}/" class="btn btn-primary btn-detail">Xem chi tiết</a>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+        document.getElementById("product-list").innerHTML = html;
+    })
+    .catch(err => {
+        document.getElementById("product-list").innerHTML = '<div class="col-12 text-center text-danger">Lỗi kết nối.</div>';
+    });
+</script>
+
+
+{% include "chatbot.html" %}
+
+{% endblock %}

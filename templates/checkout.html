@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-7">
+            <h4 class="mb-3 fw-bold">Thông tin giao hàng</h4>
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Họ tên người nhận</label>
+                        <input type="text" id="recipientName" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Địa chỉ nhận hàng (*)</label>
+                        <textarea class="form-control" id="shippingAddress" rows="4" placeholder="Số nhà, đường, phường/xã, quận/huyện..."></textarea>
+                        <div id="error-msg" class="text-danger mt-2 small d-none"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="processCheckout()" class="btn btn-primary w-100 py-3 fw-bold rounded-pill">
+                XÁC NHẬN ĐẶT HÀNG
+            </button>
+            <a href="/carts/" class="d-block text-center mt-3 text-decoration-none">Quay lại giỏ hàng</a>
+        </div>
+
+        <div class="col-md-5">
+            <h4 class="mb-3 fw-bold text-muted">Đơn hàng của bạn</h4>
+            <div class="card shadow-sm border-0 bg-light">
+                <div class="card-body">
+                    <ul class="list-group list-group-flush bg-transparent mb-3" id="order-summary">
+                        <li class="list-group-item bg-transparent text-center">Đang tải...</li>
+                    </ul>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold fs-5">
+                        <span>Tổng tiền:</span>
+                        <span class="text-danger" id="total-price">0 ₫</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("access");
+    const API_CART = '/carts/api/';
+    
+    // Sử dụng template tag để Django tự sinh URL đúng chính xác
+    const API_CHECKOUT = "/orders/api/"; 
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+
+    // 1. Load tóm tắt đơn hàng (Giữ nguyên)
+    function loadSummary() {
+        if (!token) { window.location.href = '/login/'; return; }
+
+        fetch(API_CART, { headers })
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('order-summary');
+                const totalEl = document.getElementById('total-price');
+
+                if (!data.items || data.items.length === 0) {
+                    alert("Giỏ hàng trống!");
+                    window.location.href = '/carts/';
+                    return;
+                }
+
+                // Render list
+                list.innerHTML = data.items.map(item => `
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-secondary rounded-pill me-2">${item.quantity}x</span>
+                            <span>${item.product.name}</span>
+                        </div>
+                        <span>${item.sub_total.toLocaleString()} ₫</span>
+                    </li>
+                `).join('');
+
+                totalEl.innerText = data.total_price.toLocaleString() + ' ₫';
+            })
+            .catch(err => console.error("Lỗi tải giỏ hàng:", err));
+    }
+
+    // 2. Load thông tin User 
+    // Hàm này sẽ lấy địa chỉ từ database điền vào ô nhập liệu
+    function loadUserInfo() {
+        if (!token) return;
+
+        // Gọi API Profile để lấy thông tin chính xác nhất
+        fetch('/api/profile/', { headers })
+            .then(res => res.json())
+            .then(user => {
+                // Điền tên (ưu tiên name, nếu không có thì dùng username)
+                const nameInput = document.getElementById('recipientName');
+                if (user.name) {
+                    nameInput.value = user.name;
+                }
+                
+                // Điền địa chỉ
+                const addressInput = document.getElementById('shippingAddress');
+                if (user.address) {
+                    addressInput.value = user.address;
+                }
+            })
+            .catch(err => console.error("Không tải được thông tin user:", err));
+    }
+
+    // 3. Xử lý đặt hàng 
+    function processCheckout() {
+        const address = document.getElementById('shippingAddress').value;
+        const errorDiv = document.getElementById('error-msg');
+
+        if (!address.trim()) {
+            errorDiv.innerText = "Vui lòng nhập địa chỉ giao hàng!";
+            errorDiv.classList.remove('d-none');
+            return;
+        }
+        errorDiv.classList.add('d-none');
+
+        if(!confirm("Xác nhận đặt hàng?")) return;
+
+        fetch(API_CHECKOUT, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ shipping_address: address })
+        })
+        .then(async res => {
+            // Kiểm tra nếu server trả về HTML lỗi (thường do sai URL)
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") === -1) {
+                throw new Error("Server trả về lỗi không phải JSON. Kiểm tra lại URL API.");
+            }
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Lỗi hệ thống");
+            return data;
+        })
+        .then(data => {
+            alert("Đặt hàng thành công! Mã đơn: " + data.order_id);
+            window.location.href = '/'; 
+        })
+        .catch(err => {
+            console.error(err);
+            alert(err.message);
+        });
+    }
+
+    // Chạy khi trang tải xong
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSummary();   // Tải giỏ hàng
+        loadUserInfo();  // Tải địa chỉ & tên
+    });
+</script>
+{% endblock %}

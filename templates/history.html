@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-2" style="background-color: #f8f9fa;">
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10 text-center">
+            <h2 class="fw-bold text-dark mb-2">Lịch sử đơn hàng</h2>
+            <p class="text-muted">Nhấp vào đơn hàng để xem chi tiết</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            
+            <div id="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">Đang tải dữ liệu...</p>
+            </div>
+
+            <div id="error-msg" class="alert alert-danger shadow-sm border-0 rounded-3 mb-4" style="display: none;"></div>
+
+            <div class="card shadow-sm border-0 rounded-4 d-none" id="orders-card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr class="text-secondary text-uppercase fs-7" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+                                    <th class="py-4 ps-4 border-bottom-0">Mã đơn</th>
+                                    <th class="py-4 border-bottom-0">Ngày đặt</th>
+                                    <th class="py-4 border-bottom-0" style="width: 35%;">Sản phẩm</th>
+                                    <th class="py-4 border-bottom-0">Tổng tiền</th>
+                                    <th class="py-4 border-bottom-0 text-center">Trạng thái</th>
+                                    <th class="py-4 border-bottom-0"></th> </tr>
+                            </thead>
+                            <tbody id="orders-body" class="border-top-0">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="empty-state" class="text-center py-5 d-none bg-white rounded-4 shadow-sm">
+                <div class="mb-3 opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-bag-x" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M6.146 8.146a.5.5 0 0 1 .708 0L8 8.707l1.146-1.147a.5.5 0 0 1 .708.708L8.707 9.414l1.147 1.146a.5.5 0 0 1-.708.708L8 10.121l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 9.414 6.146 8.268a.5.5 0 0 1 0-.708z"/>
+                        <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"/>
+                    </svg>
+                </div>
+                <h5 class="fw-bold text-dark">Chưa có đơn hàng nào</h5>
+                <p class="text-muted mb-4">Bạn chưa thực hiện giao dịch nào gần đây.</p>
+                <a href="/" class="btn btn-primary rounded-pill px-4 shadow-sm">Bắt đầu mua sắm</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Soft Badges Styles */
+    .badge-soft-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .badge-soft-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .badge-soft-danger  { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    
+    .product-item { display: block; margin-bottom: 4px; font-size: 0.95rem; }
+    .product-item:last-child { margin-bottom: 0; }
+    
+    /* Hiệu ứng khi rê chuột vào dòng */
+    .table-hover tbody tr:hover {
+        background-color: #f1f3f5 !important; /* Màu nền khi hover */
+        transform: translateY(-1px); /* Nhấc nhẹ dòng lên */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Đổ bóng nhẹ */
+        transition: all 0.2s ease;
+    }
+</style>
+
+<script>
+    // 1. CONFIG & AUTH
+    const token = localStorage.getItem("access");
+    const headers = { 
+        'Content-Type': 'application/json', 
+        'Authorization': `Bearer ${token}` 
+    };
+
+    const formatMoney = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+
+    const formatDate = (dateString) => {
+        if(!dateString) return '';
+        const date = new Date(dateString);
+        const day = date.toLocaleDateString('vi-VN');
+        const time = date.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+        return `<div>${day}</div><div class="small text-muted">${time}</div>`;
+    };
+
+    const getStatusBadge = (status) => {
+        const config = {
+            'PENDING':   { text: 'Chờ xử lý',   cls: 'badge-soft-warning' },
+            'COMPLETED': { text: 'Hoàn thành',  cls: 'badge-soft-success' },
+            'CANCELLED': { text: 'Đã hủy',      cls: 'badge-soft-danger' }
+        };
+        const st = config[status] || { text: status, cls: 'bg-secondary text-white' };
+        return `<span class="badge rounded-pill ${st.cls} py-2 px-3">${st.text}</span>`;
+    };
+
+    async function loadHistory() {
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error-msg');
+        const cardEl = document.getElementById('orders-card');
+        const emptyEl = document.getElementById('empty-state');
+        const tbody = document.getElementById('orders-body');
+
+        if (!token) {
+            loadingEl.style.display = 'none';
+            errorEl.style.display = 'block';
+            errorEl.innerHTML = 'Vui lòng <a href="/login/" class="fw-bold">đăng nhập</a> để xem lịch sử đơn hàng.';
+            return;
+        }
+
+        try {
+            const response = await fetch('/orders/api/history/', { method: 'GET', headers: headers });
+
+            if (response.status === 401) throw new Error("Phiên đăng nhập hết hạn.");
+            if (!response.ok) throw new Error('Lỗi kết nối server.');
+
+            const orders = await response.json();
+            loadingEl.style.display = 'none';
+
+            if (!orders || orders.length === 0) {
+                emptyEl.classList.remove('d-none');
+                return;
+            }
+
+            cardEl.classList.remove('d-none');
+            
+            // --- PHẦN LOGIC CLICK CẢ DÒNG ---
+            tbody.innerHTML = orders.map(order => {
+                
+                let itemsHtml = '';
+                if (order.items && order.items.length > 0) {
+                    itemsHtml = order.items.map(item => `
+                        <div class="product-item">
+                            <span class="fw-medium text-dark">${item.product_name}</span>
+                            <span class="text-muted ms-1">x${item.quantity}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    itemsHtml = '<span class="text-muted fst-italic">Không có sản phẩm</span>';
+                }
+
+                // Cập nhật: Thêm onclick và cursor: pointer
+                return `
+                    <tr onclick="window.location.href='/orders/detail/${order.id}/'" 
+                        style="cursor: pointer;" 
+                        title="Xem chi tiết đơn #${order.id}">
+                        
+                        <td class="ps-4 py-3">
+                            <span class="fw-bold text-primary">#${order.id}</span>
+                        </td>
+                        <td class="py-3">${formatDate(order.created_at)}</td>
+                        <td class="py-3">${itemsHtml}</td>
+                        <td class="py-3">
+                            <span class="fw-bold text-dark fs-6">${formatMoney(order.total_price)}</span>
+                        </td>
+                        <td class="text-center py-3">${getStatusBadge(order.status)}</td>
+                        
+                        <td class="text-end pe-4 text-muted">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                            </svg>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error(error);
+            loadingEl.style.display = 'none';
+            errorEl.style.display = 'block';
+            errorEl.innerText = error.message;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadHistory);
+</script>
+{% endblock %}

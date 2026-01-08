@@ -1,0 +1,143 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Quản lý người dùng{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Danh sách người dùng</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download"></i> Xuất Excel
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 text-primary">Tất cả tài khoản</h5>
+        <span class="badge bg-secondary rounded-pill" id="total-users">Loading...</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Họ tên</th>
+                        <th>Email</th>
+                        <th>Vai trò</th>
+                        <th>Địa chỉ</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body">
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Đang tải dữ liệu...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 1. KIỂM TRA QUYỀN TRUY CẬP
+    const token = localStorage.getItem("access");
+    const userStr = localStorage.getItem("user");
+    
+    // Check sơ bộ ở client
+    if (!token || !userStr) {
+        window.location.href = "/login/";
+    } else {
+        const user = JSON.parse(userStr);
+        if (user.role !== "admin" && !user.is_superuser) {
+            alert("Bạn không có quyền truy cập trang này!");
+            window.location.href = "/";
+        } else {
+            fetchUsers();
+        }
+    }
+
+    // 2. LOAD DATA
+    function fetchUsers() {
+        fetch('/api/admin/users/', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => {
+            if (res.status === 401) {
+                logout(); // Gọi hàm logout từ base_admin.html
+                throw new Error("Unauthorized");
+            }
+            if (!res.ok) throw new Error("Lỗi tải dữ liệu");
+            return res.json();
+        })
+        .then(data => {
+            renderTable(data);
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('user-table-body').innerHTML = 
+                `<tr><td colspan="7" class="text-center text-danger py-3">Lỗi khi tải dữ liệu!</td></tr>`;
+        });
+    }
+
+    // 3. RENDER TABLE
+    function renderTable(users) {
+        const tbody = document.getElementById('user-table-body');
+        const totalBadge = document.getElementById('total-users');
+        
+        tbody.innerHTML = '';
+        totalBadge.innerText = `${users.length} users`;
+
+        if (users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3">Không có người dùng nào.</td></tr>`;
+            return;
+        }
+
+        users.forEach(u => {
+            const roleBadge = u.role === 'admin' 
+                ? '<span class="badge bg-danger">Admin</span>' 
+                : '<span class="badge bg-info text-dark">Customer</span>';
+            
+            const statusHtml = u.is_active 
+                ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> Active</span>' 
+                : '<span class="text-secondary"><i class="bi bi-dash-circle"></i> Inactive</span>';
+
+            const row = `
+                <tr>
+                    <td class="ps-4 text-muted">#${u.id}</td>
+                    <td class="fw-bold text-dark">${u.name}</td>
+                    <td><a href="mailto:${u.email}" class="text-decoration-none">${u.email}</a></td>
+                    <td>${roleBadge}</td>
+                    <td class="text-truncate" style="max-width: 150px;">
+                        ${u.address || '<em class="text-muted small">Chưa cập nhật</em>'}
+                    </td>
+                    <td>${statusHtml}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" title="Sửa">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" title="Xóa">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+</script>
+{% endblock %}

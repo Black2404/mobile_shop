@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Mobile Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa; 
+        }
+
+        /* --- NAVBAR STYLING --- */
+        .navbar {
+            background: linear-gradient(135deg, #1a1d20 0%, #212529 100%) !important;
+            padding: 15px 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            margin: 0 8px;
+            color: rgba(255,255,255,0.7) !important;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: #fff !important;
+        }
+
+        /* Hiệu ứng gạch chân chạy ra từ giữa */
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 50%;
+            background-color: #0d6efd;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::after {
+            width: 80%;
+        }
+
+        /* --- AUTH BUTTONS REDESIGN --- */
+        .auth-container {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Khoảng cách giữa các nút */
+        }
+
+        /* Nút Đăng nhập: Viền mỏng, sáng */
+        .btn-login {
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            padding: 8px 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-login:hover {
+            border-color: #fff;
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px); /* Nhảy nhẹ lên */
+        }
+
+        /* Nút Đăng ký: Nền xanh chủ đạo, nổi bật */
+        .btn-register {
+            background: #0d6efd;
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            padding: 8px 24px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-register:hover {
+            background: #0b5ed7;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        /* Nút User (Đã đăng nhập) */
+        .user-pill {
+            background: rgba(255,255,255,0.1);
+            border-radius: 50px;
+            padding: 5px 5px 5px 15px; /* Padding trái rộng để chứa tên */
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .user-name {
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .btn-logout {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: rgba(255,50,50, 0.2);
+            color: #ff6b6b;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .container-content {
+            margin-top: 40px;
+            min-height: 80vh; /* Đẩy footer xuống dưới */
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
+            <div><span class="text-primary">M</span>OBILE<span class="text-primary">S</span>HOP</div>
+        </a>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mx-auto">
+                <li class="nav-item"><a class="nav-link" href="/products">Sản phẩm</a></li>
+                <li class="nav-item"><a class="nav-link" href="/carts">Giỏ hàng</a></li>
+                <li class="nav-item d-none" id="nav-orders"><a class="nav-link" href="/orders/history">Đơn hàng</a></li>
+                <li class="nav-item d-none" id="nav-profile"><a class="nav-link" href="/profile">Hồ sơ</a></li>
+            </ul>
+
+            <div id="auth-section" class="auth-container">
+                
+                <div class="d-flex align-items-center gap-2" id="guest-menu">
+                    <a class="btn-login text-decoration-none" href="/login/">
+                        Đăng nhập
+                    </a>
+                    <a class="btn-register text-decoration-none" href="/register/">
+                        Đăng ký
+                    </a>
+                </div>
+
+                <div class="d-none" id="user-menu">
+                    <div class="user-pill">
+                        <span class="user-name">
+                            
+                            <span id="nav-username">User</span>
+                        </span>
+                        <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+                            <i class="bi bi-power"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container container-content">
+    {% block content %}{% endblock %}
+</div>
+
+<script>
+    // Hàm cập nhật Navbar
+    function updateNavbar() {
+        const userStr = localStorage.getItem("user");
+        
+        // Lấy tất cả các element
+        const guestMenu = document.getElementById("guest-menu");
+        const userMenu = document.getElementById("user-menu");
+        const navOrders = document.getElementById("nav-orders");
+        const navProfile = document.getElementById("nav-profile");
+        const navUsername = document.getElementById("nav-username");
+
+        if (userStr) {
+            try {
+                const u = JSON.parse(userStr);
+                // Nếu có user: Ẩn guest, hiện user menu
+                if(guestMenu) guestMenu.classList.add("d-none");
+                if(userMenu) userMenu.classList.remove("d-none");
+                if(navOrders) navOrders.classList.remove("d-none");
+                if(navProfile) navProfile.classList.remove("d-none");
+                
+                // Hiển thị tên ngắn gọn (nếu tên dài quá thì cắt bớt)
+                let displayName = u.name || u.username;
+                if(displayName.length > 15) displayName = displayName.substring(0, 12) + "...";
+                if(navUsername) navUsername.innerText = displayName;
+                
+            } catch (e) {
+                console.error("Lỗi parse user:", e);
+                localStorage.removeItem("user");
+            }
+        } else {
+            // Nếu không có user: Hiện guest, ẩn user menu 
+            if(guestMenu) guestMenu.classList.remove("d-none");
+            if(userMenu) userMenu.classList.add("d-none");
+            if(navOrders) navOrders.classList.add("d-none");
+            if(navProfile) navProfile.classList.add("d-none");
+        }
+    }
+
+    // Chạy khi trang load xong
+    document.addEventListener("DOMContentLoaded", updateNavbar);
+
+    function logout() {
+        if(confirm("Bạn muốn đăng xuất khỏi hệ thống?")) {
+            localStorage.clear();
+            // Xóa cookie CSRF nếu cần
+            document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            window.location.href = "/";
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

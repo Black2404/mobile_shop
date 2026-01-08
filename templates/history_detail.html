@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4" style="background-color: #f8f9fa;">
+    
+    <div class="row justify-content-center mb-3">
+        <div class="col-lg-8">
+            <a href="/orders/history/" class="text-decoration-none text-muted fw-medium">
+                 &larr; Quay lại lịch sử
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div id="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Đang tải chi tiết đơn hàng...</p>
+            </div>
+            
+            <div id="error-msg" class="alert alert-danger shadow-sm border-0 rounded-3 d-none"></div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center d-none" id="detail-content">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold text-primary mb-0">Đơn hàng #<span id="order-id"></span></h5>
+                        <small class="text-muted" id="order-date"></small>
+                    </div>
+                    <div id="order-status"></div>
+                </div>
+
+                <div class="card-body bg-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1 text-muted small text-uppercase fw-bold">Người nhận</p>
+                            <p class="fw-medium mb-3" id="customer-name">--</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1 text-muted small text-uppercase fw-bold">Địa chỉ giao hàng</p>
+                            <p class="fw-medium mb-0" id="shipping-address">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-borderless align-middle mb-0">
+                            <thead class="bg-light border-bottom">
+                                <tr class="text-secondary small text-uppercase">
+                                    <th class="ps-4 py-3">Sản phẩm</th>
+                                    <th class="text-center py-3">Giá</th>
+                                    <th class="text-center py-3">Số lượng</th>
+                                    <th class="pe-4 text-end py-3">Tạm tính</th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-body">
+                                </tbody>
+                            <tfoot class="border-top">
+                                <tr>
+                                    <td colspan="3" class="text-end py-4 fw-bold text-muted">Tổng tiền thanh toán:</td>
+                                    <td class="pe-4 text-end py-4">
+                                        <span class="fs-4 fw-bold text-primary" id="total-price"></span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. LẤY ID TỪ VIEW DJANGO TRUYỀN SANG
+    const orderId = "{{ order_id }}"; 
+
+    // 2. CẤU HÌNH TOKEN (QUAN TRỌNG NHẤT - ĐỂ FIX LỖI 401)
+    const token = localStorage.getItem("access");
+    const headers = { 
+        'Content-Type': 'application/json', 
+        'Authorization': `Bearer ${token}`  
+    };
+
+    const formatMoney = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    
+    // Hàm hiển thị Badge trạng thái
+    const getStatusBadge = (status) => {
+        const config = {
+            'PENDING':   { text: 'Chờ xử lý',   cls: 'bg-warning text-dark' },
+            'COMPLETED': { text: 'Hoàn thành',  cls: 'bg-success text-white' },
+            'CANCELLED': { text: 'Đã hủy',      cls: 'bg-danger text-white' }
+        };
+        const st = config[status] || { text: status, cls: 'bg-secondary text-white' };
+        return `<span class="badge rounded-pill ${st.cls} px-3 py-2">${st.text}</span>`;
+    };
+
+    async function loadOrderDetail() {
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error-msg');
+        const contentEl = document.getElementById('detail-content');
+
+        // Check Login
+        if (!token) {
+            window.location.href = '/login/';
+            return;
+        }
+
+        try {
+            // 3. GỌI API VỚI HEADER CÓ TOKEN
+            const response = await fetch(`/orders/api/detail/${orderId}/`, { 
+                method: 'GET',
+                headers: headers 
+            });
+
+            if (response.status === 401) {
+                throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+            }
+            if (response.status === 404) {
+                throw new Error("Không tìm thấy đơn hàng hoặc bạn không có quyền truy cập.");
+            }
+            if (!response.ok) {
+                throw new Error("Lỗi kết nối server.");
+            }
+
+            const data = await response.json();
+
+            // 4. RENDER DỮ LIỆU RA GIAO DIỆN
+            document.getElementById('order-id').innerText = data.id;
+            document.getElementById('order-date').innerText = new Date(data.created_at).toLocaleString('vi-VN');
+            document.getElementById('order-status').innerHTML = getStatusBadge(data.status);
+            document.getElementById('customer-name').innerText = data.customer_name;
+            document.getElementById('shipping-address').innerText = data.shipping_address;
+            document.getElementById('total-price').innerText = formatMoney(data.total_price);
+
+            // Render Items
+            const itemsBody = document.getElementById('items-body');
+            itemsBody.innerHTML = data.items.map(item => `
+                <tr>
+                    <td class="ps-4 py-3">
+                        <div class="fw-medium text-dark">${item.product_name}</div>
+                    </td>
+                    <td class="text-center py-3 text-muted">${formatMoney(item.price)}</td>
+                    <td class="text-center py-3 text-muted">x${item.quantity}</td>
+                    <td class="pe-4 text-end py-3 fw-bold text-dark">${formatMoney(item.sub_total)}</td>
+                </tr>
+            `).join('');
+
+            // Ẩn loading, hiện nội dung
+            loadingEl.classList.add('d-none');
+            contentEl.classList.remove('d-none');
+
+        } catch (error) {
+            loadingEl.classList.add('d-none');
+            errorEl.classList.remove('d-none');
+            errorEl.innerText = error.message;
+            
+            // Nếu lỗi auth thì redirect sau 2s
+            if(error.message.includes("đăng nhập")) {
+                setTimeout(() => window.location.href = '/login/', 2000);
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadOrderDetail);
+</script>
+{% endblock %}
