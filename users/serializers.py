@@ -38,3 +38,7 @@ class LoginSerializer(serializers.Serializer):
                 "role": user.role
             }
         }
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['name', 'role', 'address', 'is_active']

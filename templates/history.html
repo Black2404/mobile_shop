@@ -118,7 +118,7 @@
         }
 
         try {
-            const response = await fetch('/orders/api/history/', { method: 'GET', headers: headers });
+            const response = await fetch('/api/orders/history/', { method: 'GET', headers: headers });
 
             if (response.status === 401) throw new Error("Phiên đăng nhập hết hạn.");
             if (!response.ok) throw new Error('Lỗi kết nối server.');

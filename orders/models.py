@@ -7,6 +7,7 @@ class Order(models.Model):
     # Các lựa chọn trạng thái đơn hàng
     STATUS_CHOICES = [
         ('PENDING', 'Chờ xử lý'),
+        ('SHIPPING', 'Đang giao hàng'),
         ('COMPLETED', 'Đã hoàn thành'),
         ('CANCELLED', 'Đã hủy'),
     ]

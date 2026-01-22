@@ -19,10 +19,10 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
-    name = models.TextField()
     email = models.EmailField(unique=True)
     # password đã có sẵn trong AbstractBaseUser
-    role = models.TextField(default='customer')
+    role = models.CharField(max_length=20, default='customer')
+    name = models.CharField(max_length=150)
     address = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -40,3 +40,4 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+    

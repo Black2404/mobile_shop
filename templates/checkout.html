@@ -46,9 +46,6 @@
 <script>
     const token = localStorage.getItem("access");
     const API_CART = '/carts/api/';
-    
-    // Sử dụng template tag để Django tự sinh URL đúng chính xác
-    const API_CHECKOUT = "/orders/api/"; 
 
     const headers = {
         'Content-Type': 'application/json',
@@ -125,7 +122,7 @@
 
         if(!confirm("Xác nhận đặt hàng?")) return;
 
-        fetch(API_CHECKOUT, {
+        fetch('/api/orders/', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ shipping_address: address })

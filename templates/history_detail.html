@@ -112,7 +112,7 @@
 
         try {
             // 3. GỌI API VỚI HEADER CÓ TOKEN
-            const response = await fetch(`/orders/api/detail/${orderId}/`, { 
+            const response = await fetch(`/api/orders/detail/${orderId}/`, { 
                 method: 'GET',
                 headers: headers 
             });

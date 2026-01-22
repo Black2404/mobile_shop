@@ -1,9 +1,9 @@
 from django.urls import path
 from .views import (
     # API Views (Xử lý logic, trả về JSON)
-    RegisterView, LoginView, UserProfileView, AdminUserListView, AdminStatsView,
+    RegisterView, LoginView, UserProfileView, AdminStatsView, AdminUserDetailView, AdminOrderListView, AdminUserListView,
     # HTML Views (Trả về giao diện trang web)
-    login_page, register_page, home, profile_page, dashboard_page
+    login_page, register_page, home, profile_page, dashboard_page, admin_users_page,
 )
 
 urlpatterns = [
@@ -21,9 +21,18 @@ urlpatterns = [
 
     path('api/profile/', UserProfileView.as_view(), name='api_profile'), 
 
+    # --- DASHBOARD & QUẢN LÝ ---
     path('dashboard/', dashboard_page, name='dashboard'),
+    
+    # Trang HTML
+    path('admin/users/', admin_users_page, name='admin_users_html'),
 
-    path('api/admin/users/', AdminUserListView.as_view(), name='api_admin_users'),
 
+    # API Dữ liệu
     path('api/admin/stats/', AdminStatsView.as_view(), name='api_admin_stats'),
+    path('api/admin/users/', AdminUserListView.as_view(), name='api_admin_user'),
+    path('api/admin/users/<int:pk>/', AdminUserDetailView.as_view(), name='api_admin_user_detail'),
+    path('api/admin/orders/', AdminOrderListView.as_view(), name='api_admin_orders'),
+
+
 ]

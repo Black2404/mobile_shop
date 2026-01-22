@@ -19,7 +19,7 @@ def create_order_service(user, shipping_address):
     total_order_price = 0
     order_items_to_create = []
 
-    # 2. Bắt đầu Transaction (Để đảm bảo Order và OrderItems được tạo đồng bộ)
+    # 2. Bắt đầu Transaction (Để đảm bảo Order và OrderItems được tạo đồng bộ) -> nếu sai thì rollback
     with transaction.atomic():
         # A. Tạo Order Header trước
         order = Order.objects.create(
@@ -46,7 +46,7 @@ def create_order_service(user, shipping_address):
                 )
             )
 
-        # C. Lưu tất cả Order Items cùng lúc (Tối ưu SQL)
+        # C. Lưu tất cả Order Items cùng lúc (Tối ưu SQL) -> gom nhiều đơn hàng trong 1 giỏ hàng lại rồi gửi 1 lần
         OrderItem.objects.bulk_create(order_items_to_create)
 
         # Lấy danh sách ID các sản phẩm vừa bán để báo cho ai cần biết

@@ -5,21 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin Dashboard{% endblock %}</title>
     
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
         body {
+            font-family: 'Inter', sans-serif;
             font-size: .875rem;
+            background-color: #f8f9fa;
         }
-        /* Sidebar Styles */
+
+        /* --- STYLES CHO HEADER ADMIN --- */
+        .navbar {
+            background: linear-gradient(135deg, #1a1d20 0%, #212529 100%) !important;
+            padding: 10px 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            height: 55px;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* --- STYLES CHO NÚT USER/LOGOUT (Code mới) --- */
+        .user-pill {
+            background: rgba(255,255,255,0.1);
+            border-radius: 50px;
+            padding: 4px 4px 4px 15px; /* Padding trái để chứa tên */
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-right: 15px;
+        }
+
+        .user-name {
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .btn-logout {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,50,50, 0.2);
+            color: #ff6b6b;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .btn-logout:hover {
+            background: #ff6b6b;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* --- SIDEBAR STYLES --- */
         .sidebar {
             position: fixed;
             top: 0;
             bottom: 0;
             left: 0;
             z-index: 100;
-            padding: 48px 0 0;
+            padding: 55px 0 0; /* Đẩy xuống dưới Header */
             box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
         }
         .sidebar-sticky {
@@ -33,63 +88,84 @@
         .nav-link {
             font-weight: 500;
             color: #333;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
         }
         .nav-link.active {
-            color: #2470dc;
+            color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.1);
+            border-right: 3px solid #0d6efd;
         }
         .nav-link:hover {
-            color: #2470dc;
+            color: #0d6efd;
             background-color: #f8f9fa;
         }
     </style>
 </head>
 <body>
 
-    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">ADMIN PANEL</a>
+    <header class="navbar navbar-dark sticky-top flex-md-nowrap p-0 shadow">
+        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#">ADMIN PANEL</a>
+        
         <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="w-100"></div> <div class="navbar-nav">
-            <div class="nav-item text-nowrap">
-                <button class="nav-link px-3 bg-dark border-0" onclick="logout()">Đăng xuất</button>
+        
+        <div class="w-100"></div> 
+
+        <div class="d-flex align-items-center">
+            <div class="user-pill">
+                <span class="user-name" id="admin-name-display">Admin</span>
+                <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+                    <i class="bi bi-power"></i>
+                </button>
             </div>
         </div>
     </header>
 
     <div class="container-fluid">
         <div class="row">
-            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-white sidebar collapse">
                 <div class="position-sticky pt-3 sidebar-sticky">
-                    <ul class="nav flex-column">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                        <span>Tổng quan</span>
+                    </h6>
+                    <ul class="nav flex-column mb-2">
                         <li class="nav-item">
-                            <a class="nav-link {% if '/dashboard/' in request.path %}active{% endif %}" href="/dashboard/">
-                                <i class="bi bi-people me-2"></i>
-                                Quản lý User
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-muted" href="#">
-                                <i class="bi bi-box-seam me-2"></i>
-                                Quản lý Sản phẩm
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-muted" href="#">
-                                <i class="bi bi-cart me-2"></i>
-                                Đơn hàng
+                            <a class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}" href="{% url 'dashboard' %}">
+                                <i class="bi bi-speedometer2 me-2"></i>
+                                Thống kê chung
                             </a>
                         </li>
                     </ul>
 
-                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                        <span>Hệ thống</span>
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                        <span>Quản lý</span>
                     </h6>
-                    <ul class="nav flex-column mb-2">
+                    <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link text-muted" href="/">
-                                <i class="bi bi-house-door me-2"></i>
-                                Về trang chủ
+                            <a class="nav-link {% if '/users/' in request.path %}active{% endif %}" href="{% url 'admin_users_html' %}">
+                                <i class="bi bi-people me-2"></i>
+                                Người dùng
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/products/' in request.path %}active{% endif %}" href="{% url 'admin_products_html' %}">
+                                <i class="bi bi-box-seam me-2"></i>
+                                Sản phẩm
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/orders/' in request.path %}active{% endif %}" href="{% url 'admin_orders_html' %}">
+                                <i class="bi bi-cart me-2"></i>
+                                Đơn hàng
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            {% comment %} <a class="nav-link {% if '/reviews/' in request.path %}active{% endif %}" href="{% url 'admin_reviews_html' %}"> {% endcomment %}
+                                <i class="bi bi-star me-2"></i>
+                                Đánh giá
                             </a>
                         </li>
                     </ul>
@@ -106,12 +182,35 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Hàm đăng xuất dùng chung cho toàn bộ trang Admin
+
+        // 1. Hiển thị tên Admin khi load trang
+        document.addEventListener("DOMContentLoaded", function() {
+            const userStr = localStorage.getItem("user");
+            if (userStr) {
+                try {
+                    const u = JSON.parse(userStr);
+                    // Hiển thị tên
+                    let displayName = u.name || "Admin";
+                    if(displayName.length > 15) displayName = displayName.substring(0, 12) + "...";
+                    
+                    document.getElementById("admin-name-display").innerText = displayName;
+                } catch (e) {
+                    console.error("Lỗi user data", e);
+                }
+            } else {
+                // Nếu không có user trong localStorage -> Chưa đăng nhập -> Đá về Login
+                window.location.href = "/login/";
+            }
+        });
+
+        // 2. Hàm Logout chuẩn (Có confirm & xóa sạch data)
         function logout() {
-            localStorage.removeItem("access");
-            localStorage.removeItem("refresh");
-            localStorage.removeItem("user");
-            window.location.href = "/login/";
+            if(confirm("Bạn muốn đăng xuất khỏi trang quản trị?")) {
+                localStorage.clear(); // Xóa token & user info
+                // Xóa cookie nếu cần thiết
+                document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                window.location.href = "/login/"; // Chuyển về trang đăng nhập
+            }
         }
     </script>
 

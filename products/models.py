@@ -2,7 +2,7 @@ from django.db import models
 
 class Brand(models.Model):
     id = models.AutoField(primary_key=True)
-    name = models.TextField()
+    name = models.CharField(max_length=100)
 
     class Meta:
         managed = False
@@ -12,7 +12,7 @@ class Brand(models.Model):
 class Product(models.Model):
     id = models.AutoField(primary_key=True)
     brand = models.ForeignKey(Brand, on_delete=models.DO_NOTHING, db_column='brand_id')
-    name = models.TextField()
+    name = models.CharField(max_length=255)
     price = models.BigIntegerField()
     description = models.TextField()
     created_at = models.DateTimeField()

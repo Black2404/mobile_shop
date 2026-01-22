@@ -6,7 +6,7 @@ from products.models import ProductImage
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     
-    # 2. SỬA: Dùng SerializerMethodField để tự viết logic lấy ảnh
+    
     product_image = serializers.SerializerMethodField()
     
     sub_total = serializers.SerializerMethodField()
@@ -32,10 +32,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
-    
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     # Lấy tên thật của người dùng (user.name)
     customer_name = serializers.CharField(source='user.name', read_only=True)
 
     class Meta:
         model = Order
-        fields = ['id', 'total_price', 'status', 'shipping_address', 'created_at', 'items', 'customer_name']
+        fields = ['id', 'total_price', 'status', 'status_display', 'shipping_address', 'created_at', 'items', 'customer_name']

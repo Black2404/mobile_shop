@@ -1,167 +1,156 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Dashboard Overview{% endblock %}
+{% block title %}Admin Dashboard{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
     <h1 class="h2">Tổng quan hệ thống</h1>
+    <div class="d-flex align-items-center bg-white p-2 rounded shadow-sm border">
+        <label for="monthFilter" class="me-2 fw-bold text-muted small"><i class="bi bi-calendar3"></i> Xem báo cáo:</label>
+        <select class="form-select form-select-sm border-0 fw-bold text-primary" id="monthFilter" style="width: 170px; cursor: pointer;"></select>
+    </div>
 </div>
 
 <div class="row g-4 mb-4">
     <div class="col-md-3">
-        <div class="card shadow-sm border-left-primary h-100">
+        <div class="card shadow-sm border-0 border-start border-primary border-4 h-100">
             <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-secondary small text-uppercase fw-bold">Tổng Người dùng</div>
-                        <h3 class="mb-0 fw-bold text-primary" id="stat-total">0</h3>
+                        <p class="text-uppercase text-muted fw-bold mb-1 small">Người dùng</p>
+                        <h3 class="fw-bold text-primary mb-0" id="stat-user">0</h3>
+                        <small class="text-success fw-bold" id="stat-user-new">+0 Mới</small>
                     </div>
-                    <div class="fs-1 text-primary opacity-25">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded"><i class="bi bi-people-fill text-primary fs-3"></i></div>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="col-md-3">
-        <div class="card shadow-sm border-left-success h-100">
+        <div class="card shadow-sm border-0 border-start border-success border-4 h-100">
             <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-secondary small text-uppercase fw-bold">Mới (30 ngày)</div>
-                        <h3 class="mb-0 fw-bold text-success" id="stat-new">0</h3>
+                        <p class="text-uppercase text-muted fw-bold mb-1 small">Sản phẩm</p>
+                        <h3 class="fw-bold text-success mb-0" id="stat-product">0</h3>
+                        <small class="text-muted">Active: <span id="stat-product-active">0</span></small>
                     </div>
-                    <div class="fs-1 text-success opacity-25">
-                        <i class="bi bi-person-plus-fill"></i>
-                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded"><i class="bi bi-box-seam-fill text-success fs-3"></i></div>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="col-md-3">
-        <div class="card shadow-sm border-left-info h-100">
+        <div class="card shadow-sm border-0 border-start border-warning border-4 h-100">
             <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-secondary small text-uppercase fw-bold">Đang Hoạt động</div>
-                        <h3 class="mb-0 fw-bold text-info" id="stat-active">0</h3>
+                        <p class="text-uppercase text-muted fw-bold mb-1 small">Đơn hàng</p>
+                        <h3 class="fw-bold text-warning mb-0" id="stat-order">0</h3>
+                        <small class="text-danger fw-bold" id="stat-order-pending">0 Chờ xử lý</small>
                     </div>
-                    <div class="fs-1 text-info opacity-25">
-                        <i class="bi bi-activity"></i>
-                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded"><i class="bi bi-cart-fill text-warning fs-3"></i></div>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="col-md-3">
-        <div class="card shadow-sm border-left-warning h-100">
+        <div class="card shadow-sm border-0 border-start border-danger border-4 h-100">
             <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-secondary small text-uppercase fw-bold">Quản trị viên</div>
-                        <h3 class="mb-0 fw-bold text-warning" id="stat-admin">0</h3>
+                        <p class="text-uppercase text-muted fw-bold mb-1 small">Đánh giá</p>
+                        <h3 class="fw-bold text-danger mb-0" id="stat-review">0</h3>
+                        <small class="text-muted">TB: <span id="stat-review-avg">0</span> <i class="bi bi-star-fill text-warning"></i></small>
                     </div>
-                    <div class="fs-1 text-warning opacity-25">
-                        <i class="bi bi-shield-lock-fill"></i>
-                    </div>
+                    <div class="bg-danger bg-opacity-10 p-3 rounded"><i class="bi bi-chat-left-heart-fill text-danger fs-3"></i></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-header bg-white py-3">
-        <h5 class="mb-0 text-dark">Danh sách tài khoản gần đây</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">ID</th>
-                        <th>Họ tên</th>
-                        <th>Email</th>
-                        <th>Vai trò</th>
-                        <th>Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody id="user-table-body">
-                    <tr><td colspan="5" class="text-center py-3">Đang tải...</td></tr>
-                </tbody>
-            </table>
+<div class="row g-4">
+    <div class="col-12"> <div class="card shadow-sm h-100 border-0 border-top border-primary border-4">
+            <div class="card-body d-flex flex-column justify-content-center py-5">
+                <h6 class="text-muted text-uppercase fw-bold mb-4 text-center">Doanh thu <span id="lbl-month">tháng này</span></h6>
+                
+                <div class="text-center mb-4">
+                    <h3 class="display-1 fw-bold text-primary mb-0" id="val-revenue">0 ₫</h3> </div>
+                
+                <hr class="w-25 mx-auto text-muted my-4">
+                
+                <div class="row text-center mt-3 justify-content-center">
+                    <div class="col-md-3 border-end">
+                        <h3 class="fw-bold text-dark mb-0" id="val-orders">0</h3>
+                        <small class="text-muted text-uppercase fw-bold small">Đơn hàng</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="fw-bold text-dark mb-0" id="val-avg">0 ₫</h3>
+                        <small class="text-muted text-uppercase fw-bold small">TB/Đơn</small>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-
-<style>
-    .border-left-primary { border-left: 4px solid #0d6efd; }
-    .border-left-success { border-left: 4px solid #198754; }
-    .border-left-info    { border-left: 4px solid #0dcaf0; }
-    .border-left-warning { border-left: 4px solid #ffc107; }
-</style>
-
+    </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     const token = localStorage.getItem("access");
+    if (!token) window.location.href = "/login/";
 
-    // Khi trang load xong thì gọi 2 hàm: lấy thống kê & lấy danh sách
-    document.addEventListener("DOMContentLoaded", function() {
-        if (!token) window.location.href = "/login/";
+    let dbOrders = []; // Chỉ cần lưu Orders, không cần Products nữa
+    const formatVND = (n) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+    const getEl = (id) => document.getElementById(id);
+
+    // 1. Tải dữ liệu (Bỏ API products)
+    Promise.all([
+        fetch('/api/admin/stats/', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+        fetch('/api/admin/orders/', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
+    ]).then(([stats, orders]) => {
+        // Điền Stats
+        getEl('stat-user').innerText = stats.users?.total || stats.total_users || 0;
+        getEl('stat-user-new').innerText = `+${stats.users?.new || stats.new_users_30_days || 0} Mới`;
+        getEl('stat-product').innerText = stats.products?.total || 0;
+        getEl('stat-product-active').innerText = stats.products?.active || 0;
+        getEl('stat-order').innerText = stats.orders?.total || 0;
+        getEl('stat-order-pending').innerText = `${stats.orders?.pending || 0} Chờ xử lý`;
+        getEl('stat-review').innerText = stats.reviews?.total || 0;
+        getEl('stat-review-avg').innerText = stats.reviews?.avg_rating || 0;
+
+        dbOrders = orders;
+        initFilter();
+    }).catch(e => console.error("Load Error:", e));
+
+    // 2. Dropdown
+    function initFilter() {
+        const select = getEl('monthFilter');
+        const today = new Date();
         
-        fetchStats();
-        fetchUsers();
-    });
+        select.innerHTML = Array.from({length: 12}, (_, i) => {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const m = (d.getMonth() + 1).toString().padStart(2, '0');
+            const val = `${d.getFullYear()}-${m}`;
+            return `<option value="${val}">Tháng ${m}/${d.getFullYear()}</option>`;
+        }).join('');
 
-    // 1. HÀM LẤY THỐNG KÊ
-    function fetchStats() {
-        fetch('/api/admin/stats/', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        })
-        .then(res => res.json())
-        .then(data => {
-            // Gán dữ liệu vào các thẻ HTML
-            document.getElementById('stat-total').innerText = data.total_users;
-            document.getElementById('stat-new').innerText = data.new_users_30_days;
-            document.getElementById('stat-active').innerText = data.active_users;
-            document.getElementById('stat-admin').innerText = data.admin_count;
-        })
-        .catch(err => console.error("Lỗi tải thống kê:", err));
+        select.addEventListener('change', (e) => renderDashboard(e.target.value));
+        renderDashboard(select.value); 
     }
 
-    // 2. HÀM LẤY DANH SÁCH USER (Như cũ)
-    function fetchUsers() {
-        fetch('/api/admin/users/', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        })
-        .then(res => {
-            if (res.status === 401) { logout(); } // logout() từ base_admin.html
-            return res.json();
-        })
-        .then(data => {
-            const tbody = document.getElementById('user-table-body');
-            tbody.innerHTML = '';
-            // Chỉ hiện tối đa 10 user mới nhất để bảng không quá dài
-            const recentUsers = data.slice(0, 10); 
+    // 3. Render Dashboard (Chỉ còn tính doanh thu)
+    function renderDashboard(monthStr) {
+        const [y, m] = monthStr.split('-');
+        getEl('lbl-month').innerText = `Tháng ${m}/${y}`;
 
-            recentUsers.forEach(u => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="ps-4">#${u.id}</td>
-                        <td class="fw-bold">${u.name}</td>
-                        <td>${u.email}</td>
-                        <td><span class="badge ${u.role==='admin'?'bg-danger':'bg-secondary'}">${u.role}</span></td>
-                        <td>${u.is_active ? '<span class="text-success small">● Active</span>' : '<span class="text-muted small">● Locked</span>'}</td>
-                    </tr>
-                `;
-            });
-        })
-        .catch(err => console.error(err));
+        const filtered = dbOrders.filter(o => o.created_at.startsWith(monthStr));
+        const revenue = filtered.reduce((sum, o) => sum + parseFloat(o.total_price), 0);
+        
+        getEl('val-revenue').innerText = formatVND(revenue);
+        getEl('val-orders').innerText = filtered.length;
+        getEl('val-avg').innerText = formatVND(filtered.length ? revenue / filtered.length : 0);
     }
 </script>
 {% endblock %}
