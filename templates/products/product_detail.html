@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .prod-img { background:#fff; border-radius:12px; padding:20px; transition:0.3s; box-shadow:0 4px 12px #0000000d; }
+    .prod-img:hover { transform: scale(1.02); }
+    .star-btn { cursor:pointer; font-size:1.5rem; color:#dee2e6; transition:0.2s; }
+    .star-btn.active, .star-btn:hover { color:#ffc107; transform:scale(1.1); }
+    .review-box { background:#f8f9fa; border-radius:12px; padding:20px; border:1px solid #e9ecef; }
+    .sticky-top-custom { position:sticky; top:20px; z-index:100; }
+</style>
+
+<div class="container py-5">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-secondary">Trang chủ</a></li>
+            <li class="breadcrumb-item active fw-bold" id="bread-name">Đang tải...</li>
+        </ol>
+    </nav>
+
+    <div class="row g-5">
+        <div class="col-lg-5">
+            <div class="prod-img text-center">
+                <img id="img" src="https://placehold.co/400" class="img-fluid" style="max-height:400px; object-fit:contain" onerror="this.src='https://placehold.co/400'">
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <h1 id="name" class="fw-bolder mb-2">...</h1>
+            
+            <div class="mb-3">
+                <span class="badge bg-warning text-dark me-2">Bán chạy</span>
+                <span class="text-muted small">ID: #{{ product_id }}</span>
+            </div>
+            
+            <h2 class="text-danger fw-bold mb-4" id="price">...</h2>
+            
+            <div class="p-3 bg-white border rounded shadow-sm mb-4">
+                <p id="desc" class="mb-0 text-dark" style="white-space: pre-line;"></p>
+            </div>
+            
+            <div class="d-flex gap-3">
+                <button class="btn btn-primary flex-grow-1 py-3 rounded-pill fw-bold" onclick="addToCart()">
+                    <i class="bi bi-cart-fill me-2"></i>THÊM VÀO GIỎ HÀNG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-5 opacity-25">
+
+    <div class="row g-5">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0 fw-bold border-start border-4 border-primary ps-3">Đánh giá khách hàng</h4>
+                </div>
+                <div class="card-body">
+                    <div id="auth-ui" class="mb-4"></div>
+                    
+                    <div id="reviews">
+                        <div class="text-center py-4 text-muted">Đang tải đánh giá...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="sticky-top-custom card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white py-3 fw-bold">
+                    <i class="bi bi-gear-fill me-2"></i>Thông số kỹ thuật
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <tbody id="specs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- CẤU HÌNH ---
+    const pid = "{{ product_id }}";
+    const $ = id => document.getElementById(id);
+    let rating = 5;
+
+    // --- HÀM LẤY USER & TOKEN AN TOÀN ---
+    function getUser() {
+        try {
+            const u = localStorage.getItem("user");
+            return u ? JSON.parse(u) : null;
+        } catch (e) { return null; }
+    }
+
+    function getHeaders() {
+        const token = localStorage.getItem("access");
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+        };
+    }
+
+    // --- HÀM GỌI API ---
+    async function fetchAPI(url, options = {}) {
+        try {
+            const res = await fetch(url, options);
+            
+            if (res.status === 401) {
+                console.warn("Lỗi 401: Backend từ chối Token.");
+                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+                return "UNAUTHORIZED"; 
+            }
+
+            if (res.ok) {
+                if (res.status === 204) return true;
+                return await res.json();
+            }
+            
+            // Log lỗi chi tiết
+            const errText = await res.text();
+            console.error("API Error:", res.status, errText);
+            return null;
+        } catch (err) {
+            console.error("Network Error:", err);
+            return null;
+        }
+    }
+
+    const getStars = (n) => Array(5).fill(0).map((_,i) => `<i class="bi bi-star${i<n?'-fill':''} text-warning"></i>`).join('');
+
+    // --- MAIN ---
+    document.addEventListener("DOMContentLoaded", () => {
+        // Kiểm tra xem HTML đã render chưa rồi mới chạy logic
+        if (!$("name") || !$("reviews")) {
+            console.error("LỖI: Không tìm thấy các thẻ HTML (id='name' hoặc id='reviews'). Hãy kiểm tra lại file template.");
+            return;
+        }
+        loadProduct();
+        loadReviews();
+        renderAuth();
+    });
+
+    // 1. Load sản phẩm
+    function loadProduct() {
+        fetchAPI(`/api/products/${pid}/`).then(p => {
+            if(!p) return;
+            if($("name")) $("name").innerText = $("bread-name").innerText = p.name;
+            if($("price")) $("price").innerText = p.price.toLocaleString('vi-VN') + " ₫";
+            if($("desc")) $("desc").innerText = p.description;
+            // --- SỬA LOGIC HIỂN THỊ ẢNH TẠI ĐÂY ---
+            const imgEl = $("img");
+            if (imgEl) {
+                // Ưu tiên 1: Lấy ảnh từ mảng 'images' (Cấu trúc của ProductDetailAPI)
+                if (p.images && p.images.length > 0) {
+                    // Lấy ảnh đầu tiên trong mảng, key là 'image_url'
+                    let url = p.images[0].image_url;
+                    
+                    // Kiểm tra nếu API chưa gắn tiền tố /static/images/ thì tự gắn vào
+                    if (!url.startsWith('/static/') && !url.startsWith('http')) {
+                         url = '/static/images/' + url;
+                    }
+                    imgEl.src = url;
+                } 
+                // Ưu tiên 2: Nếu API trả về 'image' đơn lẻ (Backup)
+                else if (p.image) {
+                    imgEl.src = p.image;
+                }
+            }
+
+            const map = { screen:'Màn hình', cpu:'Chip', ram:'RAM', storage:'Bộ nhớ', battery:'Pin', camera:'Camera', os:'HĐH' };
+            if(p.specs && $("specs")) {
+                $("specs").innerHTML = Object.entries(map).map(([k, v]) => 
+                    `<tr><td class="ps-3 text-muted py-2">${v}</td><td class="fw-bold py-2">${p.specs[k] || '-'}</td></tr>`
+                ).join("");
+            }
+        });
+    }
+
+    // 2. Load đánh giá
+    async function loadReviews() {
+    const res = await fetchAPI(`/reviews/api/?product_id=${pid}`);
+    if (!res || !res.results) return;
+
+    const reviewsCont = $("reviews");
+    reviewsCont.innerHTML = "";
+
+    const user = getUser(); // lấy user đang login
+
+    res.results.forEach(r => {
+
+        reviewsCont.innerHTML += `
+            <div class="mb-4 p-3 border-bottom">
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong class="text-dark">${r.user_name}</strong>
+                    <small class="text-muted">
+                        ${new Date(r.created_at).toLocaleDateString()}
+                    </small>
+                </div>
+
+                <div class="my-2">${getStars(r.rating)}</div>
+
+                <p class="mb-2 text-dark">${r.comment}</p>
+
+                ${
+                    user && user.id === r.user
+                    ? `
+                        <div class="text-end">
+                            <button 
+                                class="btn btn-sm btn-outline-danger"
+                                onclick="delReview(${r.id})">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </div>
+                    `
+                    : ''
+                }
+
+                ${r.admin_reply ? `
+                    <div class="ms-4 mt-3 p-3 bg-light border-start border-4 border-primary rounded shadow-sm">
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi bi-reply-fill text-primary me-2"></i>
+                            <strong class="text-primary small">
+                                Phản hồi từ cửa hàng
+                            </strong>
+                        </div>
+                        <p class="mb-0 text-secondary small"
+                           style="white-space: pre-line;">
+                           ${r.admin_reply}
+                        </p>
+                    </div>
+                ` : ''}
+
+            </div>
+        `;
+    });
+}
+
+    // 3. Render khung nhập liệu
+    function renderAuth() {
+        if(!$("auth-ui")) return;
+
+        const user = getUser();
+        if (!user) {
+            $("auth-ui").innerHTML = `<div class="alert alert-secondary text-center">Vui lòng <a href="/users/login/" class="fw-bold">Đăng nhập</a> để đánh giá.</div>`;
+            return;
+        }
+        
+        $("auth-ui").innerHTML = `
+            <div class="review-box">
+                <div class="fw-bold mb-2">👋 Chào ${user.name}, đánh giá của bạn?</div>
+                <div class="mb-2">
+                    ${[1,2,3,4,5].map(i => `<i class="bi bi-star-fill star-btn ${i<=rating?'active':''}" onclick="setRate(${i})"></i>`).join('')} 
+                    <span id="rate-txt" class="ms-2 fw-bold small text-muted">Tuyệt vời</span>
+                </div>
+                <textarea id="txtCmt" class="form-control mb-2" rows="3" placeholder="Mời bạn chia sẻ thêm cảm nhận..."></textarea>
+                <div class="text-end">
+                    <button onclick="postReview()" class="btn btn-primary rounded-pill px-4 fw-bold">Gửi đánh giá</button>
+                </div>
+            </div>`;
+    }
+
+    function setRate(n) {
+        rating = n;
+        const txt = ["Rất tệ", "Tệ", "Bình thường", "Tốt", "Tuyệt vời"];
+        if($("rate-txt")) $("rate-txt").innerText = txt[n-1];
+        document.querySelectorAll('.star-btn').forEach((e, i) => e.classList.toggle('active', i < n));
+    }
+
+    // 4. Gửi đánh giá
+    async function postReview() {
+        if(!$("txtCmt")) return;
+        const comment = $("txtCmt").value;
+        if (!comment) return alert("Vui lòng nhập nội dung!");
+
+        // Gọi API
+        const res = await fetchAPI('/reviews/api/', { 
+            method: 'POST', 
+            headers: getHeaders(), 
+            body: JSON.stringify({ product: pid, comment, rating }) 
+        });
+
+        if (res === "UNAUTHORIZED") {
+            // Đã alert ở hàm fetchAPI
+        } else if (res) {
+            $("txtCmt").value = ""; 
+            setRate(5); 
+            loadReviews(); 
+            alert("Đã gửi đánh giá thành công!");
+        } else {
+            alert("Lỗi khi gửi đánh giá. Vui lòng thử lại sau.");
+        }
+    }
+
+    // 5. Xóa đánh giá
+    async function delReview(id) {
+        if(!confirm("Xóa đánh giá?")) return;
+        
+        const res = await fetchAPI(`/reviews/api/${id}/`, { 
+            method: 'DELETE', 
+            headers: getHeaders() 
+        });
+        
+        if (res) loadReviews();
+        else alert("Lỗi khi xóa đánh giá.");
+    }
+
+    // 6. Thêm vào giỏ
+    async function addToCart() {
+        // Kiểm tra đăng nhập
+        if (!getUser()) {
+            alert("Vui lòng đăng nhập để mua hàng!");
+            window.location.href = "/login/";
+            return;
+        }
+        
+        // Gọi API thêm giỏ hàng
+        // Lưu ý: Backend phải có URL này: /carts/api/add/
+        const res = await fetchAPI('/carts/api/add/', {
+            method: 'POST',
+            headers: getHeaders(), // Tự động lấy Token
+            body: JSON.stringify({ product_id: pid, quantity: 1 })
+        });
+
+        if (res === "UNAUTHORIZED") return; // Lỗi 401 đã được xử lý trong fetchAPI
+
+        if (res) {
+            alert("Đã thêm sản phẩm vào giỏ hàng thành công!");
+            // Nếu có icon giỏ hàng trên header, bạn có thể update số lượng ở đây
+        } else {
+            alert("Lỗi khi thêm giỏ hàng! (Vui lòng kiểm tra lại Server hoặc URL API)");
+        }
+    }
+</script>
+{% endblock %}

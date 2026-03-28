@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">Đăng Nhập</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input id="email" type="email" class="form-control" placeholder="abc@gmail.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu</label>
+                        <input id="password" type="password" class="form-control" placeholder="******">
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-primary fw-bold" onclick="login()">Đăng Nhập</button>
+                    </div>
+                    
+                    <p class="text-center mt-3 small">
+                        Chưa có tài khoản? <a href="/register/">Đăng ký ngay</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) {
+        alert("Vui lòng nhập đầy đủ Email và Mật khẩu");
+        return;
+    }
+
+    fetch('/api/login/', { 
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            email: email,
+            password: password
+        })
+    })
+    .then(res => {
+        if (!res.ok) {
+            // Nếu lỗi (400, 401, 500) thì ném lỗi xuống catch
+            return res.json().then(err => { throw new Error(JSON.stringify(err)) });
+        }
+        return res.json();
+    })
+    .then(data => {
+        // 1. Lưu Token
+        localStorage.setItem("access", data.access);
+        localStorage.setItem("refresh", data.refresh);
+        
+        // 2. Lưu User Info
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        alert("Đăng nhập thành công!");
+
+        // 3. Chuyển hướng
+        if (data.user.role === "admin" || data.user.is_superuser) {
+            window.location.href = "/dashboard/";
+        } else {
+            window.location.href = "/";
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        alert("Đăng nhập thất bại: Sai email hoặc mật khẩu!");
+    });
+}
+</script>
+
+{% endblock %}

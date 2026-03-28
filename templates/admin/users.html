@@ -1,0 +1,222 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Quản lý người dùng{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Quản lý Người dùng</h1>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="alert alert-info d-flex align-items-center" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <div>
+                Tổng số tài khoản hiện có: <strong id="total-count">...</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Họ tên</th>
+                        <th>Email</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                        <th class="text-end pe-4">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body">
+                    <tr>
+                        <td colspan="7" class="text-center py-4">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Cập nhật người dùng</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editUserForm">
+            <input type="hidden" id="editUserId">
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="text" class="form-control" id="editUserEmail" disabled readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Họ tên</label>
+                <input type="text" class="form-control" id="editUserName" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Địa chỉ</label>
+                <input type="text" class="form-control" id="editUserAddress">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Vai trò</label>
+                <select class="form-select" id="editUserRole">
+                    <option value="customer">Khách hàng</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="editUserActive">
+                <label class="form-check-label" for="editUserActive">Đang hoạt động (Is Active)</label>
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary" onclick="submitEditUser()">Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const token = localStorage.getItem("access");
+    if (!token) window.location.href = "/login/";
+
+    // Khởi tạo Modal của Bootstrap 5
+    let editModal;
+    document.addEventListener("DOMContentLoaded", function(){
+        const modalEl = document.getElementById('editUserModal');
+        if(modalEl) {
+            editModal = new bootstrap.Modal(modalEl);
+        }
+        loadUsers();
+    });
+
+    // 1. TẢI DANH SÁCH USER
+    function loadUsers() {
+        fetch('/api/admin/users/', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('user-table-body');
+            document.getElementById('total-count').innerText = data.length;
+            tbody.innerHTML = '';
+
+            data.forEach(user => {
+                let roleBadge = user.role === 'admin' 
+                    ? `<span class="badge bg-danger">Admin</span>` 
+                    : `<span class="badge bg-info text-dark">Khách hàng</span>`;
+                
+                let activeBadge = user.is_active 
+                    ? `<span class="badge bg-success">Active</span>` 
+                    : `<span class="badge bg-secondary">Inactive</span>`;
+
+                const dateStr = new Date(user.created_at).toLocaleDateString('vi-VN');
+
+                const row = `
+                    <tr>
+                        <td class="ps-4 fw-bold">#${user.id}</td>
+                        <td class="fw-bold text-primary">${user.name}</td> 
+                        <td>${user.email}</td>
+                        <td>${roleBadge}</td>
+                        <td>${activeBadge}</td>
+                        <td class="text-muted small">${dateStr}</td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal(${user.id})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        });
+    }
+
+    // 2. XÓA USER
+    function deleteUser(id) {
+        if (!confirm("Bạn có chắc chắn muốn xóa người dùng này không? Hành động này không thể hoàn tác.")) return;
+
+        fetch(`/api/admin/users/${id}/`, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(response => {
+            if (response.ok) {
+                alert("Đã xóa thành công!");
+                loadUsers(); // Tải lại bảng
+            } else {
+                return response.json().then(err => { throw err; });
+            }
+        })
+        .catch(error => {
+            alert(error.error || "Có lỗi xảy ra khi xóa!");
+        });
+    }
+
+    // 3. MỞ MODAL SỬA (Lấy chi tiết user)
+    function openEditModal(id) {
+        fetch(`/api/admin/users/${id}/`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(res => res.json())
+        .then(user => {
+            // Điền dữ liệu vào form
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editUserEmail').value = user.email;
+            document.getElementById('editUserName').value = user.name;
+            document.getElementById('editUserAddress').value = user.address || '';
+            document.getElementById('editUserRole').value = user.role;
+            document.getElementById('editUserActive').checked = user.is_active;
+
+            // Hiển thị modal
+            editModal.show();
+        })
+        .catch(err => alert("Không thể tải thông tin người dùng!"));
+    }
+
+    // 4. LƯU THAY ĐỔI (Gửi API PUT)
+    function submitEditUser() {
+        const id = document.getElementById('editUserId').value;
+        const data = {
+            name: document.getElementById('editUserName').value,
+            address: document.getElementById('editUserAddress').value,
+            role: document.getElementById('editUserRole').value,
+            is_active: document.getElementById('editUserActive').checked
+        };
+
+        fetch(`/api/admin/users/${id}/`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => {
+            if (res.ok) {
+                alert("Cập nhật thành công!");
+                editModal.hide();
+                loadUsers();
+            } else {
+                alert("Lỗi cập nhật!");
+            }
+        })
+        .catch(err => console.error(err));
+    }
+</script>
+{% endblock %}

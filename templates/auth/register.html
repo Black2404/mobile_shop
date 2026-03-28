@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container ">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">Đăng ký</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label">Họ và tên</label>
+                        <input id="reg-name" type="text" class="form-control" placeholder="Nguyễn Văn A">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input id="reg-email" type="email" class="form-control" placeholder="abc@gmail.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu</label>
+                        <input id="reg-password" type="password" class="form-control" placeholder="******">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ</label>
+                        <input id="reg-address" class="form-control" placeholder="Hà Nội, Việt Nam">
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-primary fw-bold" onclick="handleRegister()">Đăng ký</button>
+                    </div>
+                    
+                    <p class="text-center mt-3 small">
+                        Đã có tài khoản? <a href="/login/">Đăng nhập</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Hàm lấy CSRF Token để Django chấp nhận yêu cầu POST
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+async function handleRegister() {
+    const payload = {
+        name: document.getElementById('reg-name').value,
+        email: document.getElementById('reg-email').value,
+        password: document.getElementById('reg-password').value,
+        address: document.getElementById('reg-address').value
+    };
+
+    if (!payload.name || !payload.email || !payload.password) {
+        alert("Vui lòng nhập đầy đủ Tên, Email và Mật khẩu!");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/register/', { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert("Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập.");
+            window.location.href = "/login/"; // Chuyển sang URL frontend
+        } else {
+            // Hiển thị lỗi chi tiết từ RegisterSerializer
+            let errorMsg = "";
+            for (let key in data) {
+                errorMsg += `${key}: ${data[key]}\n`;
+            }
+            alert("Lỗi đăng ký:\n" + errorMsg);
+        }
+    } catch (error) {
+        console.error("Lỗi:", error);
+        alert("Đã xảy ra lỗi kết nối!");
+    }
+}
+</script>
+
+{% endblock %}

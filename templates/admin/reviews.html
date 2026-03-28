@@ -1,0 +1,237 @@
+{% extends "admin/base.html" %}
+{% block title %}Quản lý Đánh giá{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Giới hạn hiển thị tối đa 2 dòng cho nội dung khách và shop trả lời */
+    .text-truncate-multiline {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+    }
+    .badge-star { font-size: 0.75rem; padding: 0.3em 0.6em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Quản lý Đánh giá & Bình luận</h1>
+</div>
+
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Tìm kiếm..." onkeyup="loadReviews(1)">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select id="ratingFilter" class="form-select" onchange="loadReviews(1)">
+                    <option value="">Tất cả sao</option>
+                    <option value="5">5 Sao </option>
+                    <option value="4">4 Sao </option>
+                    <option value="3">3 Sao </option>
+                    <option value="2">2 Sao </option>
+                    <option value="1">1 Sao </option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th width="5%">ID</th>
+                    <th width="15%">Sản phẩm</th>
+                    <th width="12%">Khách hàng</th>
+                    <th width="12%">Sao</th>
+                    <th width="23%">Nội dung khách</th>
+                    <th width="23%">Shop trả lời</th> 
+                    <th width="10%" class="text-center">Tác vụ</th>
+                </tr>
+            </thead>
+            <tbody id="reviewTableBody">
+                </tbody>
+        </table>
+    </div>
+    
+    <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center py-3">
+        <div class="small text-muted" id="pagination-info">Đang tải...</div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0" id="pagination-controls">
+                </ul>
+        </nav>
+    </div>
+</div>
+
+<div class="modal fade" id="replyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">Phản hồi đánh giá</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="replyReviewId">
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Khách viết:</label>
+                    <div class="p-3 bg-light border rounded fst-italic shadow-sm" id="userCommentDisplay"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Câu trả lời của shop:</label>
+                    <textarea class="form-control" id="adminReplyInput" rows="4" placeholder="Nhập lời cảm ơn hoặc giải đáp thắc mắc..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary px-4" onclick="submitReply()">Gửi phản hồi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    const token = localStorage.getItem('access');
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (!token) {
+            window.location.href = '/login/';
+            return;
+        }
+        loadReviews(1);
+    });
+
+    // TÌM KIẾM VÀ LỌC ĐÁNH GIÁ
+    async function loadReviews(page = 1) {
+        currentPage = page;
+        
+        // 1. Lấy giá trị từ các bộ lọc
+        const ratingVal = document.getElementById("ratingFilter").value;
+        const searchVal = document.getElementById("searchInput").value; // Lấy nội dung tìm kiếm
+        
+        const tbody = document.getElementById("reviewTableBody");
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>`;
+
+        try {
+            // 2. Xây dựng URL với đầy đủ tham số search và rating
+            let url = `/reviews/api/?page=${page}`;
+            if (ratingVal) url += `&rating=${ratingVal}`;
+            if (searchVal) url += `&search=${encodeURIComponent(searchVal)}`; // Gửi tham số search lên server
+
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+
+            if (data.results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Không tìm thấy đánh giá nào phù hợp.</td></tr>`;
+                renderPagination(0, 1);
+                return;
+            }
+
+            renderTable(data.results);
+            renderPagination(data.count, page);
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Lỗi kết nối Server.</td></tr>`;
+        }
+    }
+
+    function renderTable(reviews) {
+        const tbody = document.getElementById("reviewTableBody");
+        tbody.innerHTML = reviews.map(r => {
+            let stars = "";
+            for (let i = 1; i <= 5; i++) {
+                stars += (i <= r.rating) ? '<i class="bi bi-star-fill text-warning me-1"></i>' : '<i class="bi bi-star text-muted me-1"></i>';
+            }
+            
+            let replyHtml = r.admin_reply 
+                ? `<div class="alert alert-success p-2 mb-0 small text-truncate-multiline" title="${escapeHtml(r.admin_reply)}">
+                    <i class="bi bi-chat-left-dots-fill me-1"></i> ${escapeHtml(r.admin_reply)}
+                   </div>` 
+                : `<span class="badge bg-light text-secondary border">Chưa phản hồi</span>`;
+
+            return `
+                <tr>
+                    <td class="text-muted small">${r.id}</td>
+                    <td><div class="fw-bold small text-primary">${escapeHtml(r.product_name)}</div></td>
+                    <td><div class="small">${escapeHtml(r.user_name)}</div></td>
+                    <td><div class="text-nowrap">${stars}</div></td>
+                    <td><div class="text-truncate-multiline small fst-italic" title="${escapeHtml(r.comment)}">"${escapeHtml(r.comment)}"</div></td>
+                    <td>${replyHtml}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary shadow-sm" onclick="openReplyModal(${r.id}, '${escapeHtml(r.comment)}', '${escapeHtml(r.admin_reply || '')}')">
+                            <i class="bi bi-reply"></i> Trả lời
+                        </button>
+                    </td>
+                </tr>`;
+        }).join('');
+    }
+
+    // HÀM PHÂN TRANG 1 2 3 ĐỒNG NHẤT
+    function renderPagination(totalItems, page) {
+        const pageSize = 10;
+        const totalPages = Math.ceil(totalItems / pageSize);
+        const container = document.getElementById('pagination-controls');
+        const info = document.getElementById('pagination-info');
+        
+        container.innerHTML = '';
+        if (totalItems === 0) {
+            info.innerText = "";
+            return;
+        }
+
+        info.innerText = `Trang ${page} / ${totalPages} (Tổng ${totalItems} đánh giá)`;
+
+        for (let i = 1; i <= totalPages; i++) {
+            container.innerHTML += `
+                <li class="page-item ${i === page ? 'active' : ''}">
+                    <a class="page-link shadow-none" href="javascript:void(0)" onclick="loadReviews(${i})">${i}</a>
+                </li>`;
+        }
+    }
+
+    const myReplyModal = new bootstrap.Modal(document.getElementById('replyModal'));
+    
+    function openReplyModal(id, comment, currentReply) {
+        document.getElementById('replyReviewId').value = id;
+        document.getElementById('userCommentDisplay').innerText = comment;
+        document.getElementById('adminReplyInput').value = currentReply;
+        myReplyModal.show();
+    }
+
+    // PHẢN HỒI ĐÁNH GIÁ
+    async function submitReply() {
+        const id = document.getElementById('replyReviewId').value;
+        const text = document.getElementById('adminReplyInput').value;
+
+        const res = await fetch(`/reviews/api/${id}/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ admin_reply: text })
+        });
+
+        if (res.ok) {
+            myReplyModal.hide();
+            loadReviews(currentPage);
+        } else {
+            alert("Lỗi: Bạn không có quyền thực hiện tác vụ này.");
+        }
+    }
+
+    function escapeHtml(t) { return t ? t.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m])) : ""; }
+</script>
+{% endblock %}
