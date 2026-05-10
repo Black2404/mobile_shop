@@ -9,7 +9,6 @@ class Review(models.Model):
     rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField()
     
-    # --- Để lưu câu trả lời ---
     admin_reply = models.TextField(blank=True, null=True, help_text="Phản hồi của Admin")
     
     created_at = models.DateTimeField(auto_now_add=True)

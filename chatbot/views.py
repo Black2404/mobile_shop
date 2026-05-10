@@ -1,45 +1,27 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from .agent.executor import run_agent
 
-from chatbot.rag.retriever import search_products
-from chatbot.rag.prompt import build_prompt
-from chatbot.rag.llm import ask_llm
-from products.models import Product
-
-from rest_framework.permissions import IsAdminUser
-from .agent.executor import run_admin_agent
-
-# RAG 
-
+# USER CHAT
 @api_view(["POST"])
-@permission_classes([AllowAny]) # Cho phép tất cả mọi người chat
+@permission_classes([AllowAny])
 def chat(request):
     try:
-        # 1. Lấy câu hỏi từ người dùng
-        question = request.data.get("message")
-        
+        question = request.data.get("message", "").strip()
         if not question:
             return Response({"answer": "Bạn chưa nhập câu hỏi nào cả ^^"}, status=200)
 
-        # 2. Tìm kiếm sản phẩm
-        contexts = search_products(question) 
-
-        total_count = Product.objects.count() 
-        store_info = f"Tổng số sản phẩm cửa hàng đang có: {total_count}"
-
-        # 3. Gửi cho AI trả lời
-        prompt = build_prompt(contexts, question, info=store_info)
-        answer = ask_llm(prompt)
-
+        # Chạy Agent với quyền User. Hệ thống sẽ tự động phân loại 
+        answer = run_agent(user_input=question, user=request.user, role="user")
+        
         return Response({"answer": answer})
 
     except Exception as e:
         print(f"LỖI SERVER: {str(e)}") 
         return Response({"answer": "Hệ thống đang bảo trì một chút, bạn thử lại sau nhé!"}, status=500)
     
-# AGENTIC
-
+# ADMIN CHAT
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
 def admin_chat(request):
@@ -48,7 +30,9 @@ def admin_chat(request):
         if not question:
             return Response({"answer": "Thiếu message"}, status=400)
             
-        answer = run_admin_agent(question)
+        # Chạy Agent với quyền Admin. Có thể dùng toàn bộ Tools.
+        answer = run_agent(user_input=question, user=request.user, role="admin")
+        
         return Response({"answer": answer}) 
         
     except Exception as e:

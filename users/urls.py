@@ -1,8 +1,6 @@
 from django.urls import path
 from .views import (
-    # API Views (Xử lý logic, trả về JSON)
     RegisterView, LoginView, UserProfileView, AdminStatsView, AdminUserDetailView, AdminOrderListView, AdminUserListView,
-    # HTML Views (Trả về giao diện trang web)
     login_page, register_page, home, profile_page, dashboard_page, admin_users_page,
 )
 

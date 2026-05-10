@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import Order, OrderItem
-# 1. Import model ProductImage từ app products (quan trọng)
 from products.models import ProductImage 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -18,9 +17,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     def get_sub_total(self, obj):
         return obj.price * obj.quantity
 
-    # 3. Logic lấy ảnh (Copy logic từ ProductSerializer sang đây)
     def get_product_image(self, obj):
-        # obj là OrderItem -> obj.product là sản phẩm
         img = ProductImage.objects.filter(product=obj.product).first()
         
         if img:

@@ -75,25 +75,43 @@
         const loadingId = 'loading-' + Date.now();
         appendMessage('<span class="spinner-grow spinner-grow-sm" role="status"></span>', 'bot-msg', loadingId);
 
+        // --- BẮT ĐẦU SỬA ĐỔI ---
+        // Lấy token từ localStorage (theo đúng key 'access' trong hình bạn gửi)
+        const accessToken = localStorage.getItem('access');
+        
+        const headers = { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookieChat('csrftoken')
+        };
+
+        // Nếu có token, thêm vào Header
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+        // --- KẾT THÚC SỬA ĐỔI ---
+
         try {
-            const response = await fetch('/chatbot/chat/', { // Đảm bảo URL này đúng với urls.py của bạn
+            const response = await fetch('/chatbot/chat/', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookieChat('csrftoken')
-                },
+                headers: headers, // Sử dụng headers đã được thêm Authorization
                 body: JSON.stringify({ message: message })
             });
+
             const data = await response.json();
             document.getElementById(loadingId)?.remove();
 
-            if (response.ok) appendMessage(data.answer, 'bot-msg');
-            else appendMessage("Lỗi server, vui lòng thử lại.", 'bot-msg');
+            if (response.ok) {
+                appendMessage(data.answer, 'bot-msg');
+            } else if (response.status === 401) {
+                appendMessage("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại.", 'bot-msg');
+            } else {
+                appendMessage("Lỗi server, vui lòng thử lại.", 'bot-msg');
+            }
         } catch (error) {
             document.getElementById(loadingId)?.remove();
             appendMessage("Mất kết nối server.", 'bot-msg');
         }
     }
-
+    
     chatInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
 </script>

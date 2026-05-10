@@ -1,6 +1,6 @@
 # orders/models.py
 from django.db import models
-from django.conf import settings  # Quan trọng: Dùng để tham chiếu tới model User chuẩn
+from django.conf import settings  
 from django.utils import timezone
 
 class Order(models.Model):
@@ -27,7 +27,6 @@ class Order(models.Model):
         db_table = 'orders'
 
     def __str__(self):
-        # self.user.username vẫn hoạt động bình thường
         return f"Order #{self.id} - {self.user.username}"
 
 
@@ -35,9 +34,9 @@ class OrderItem(models.Model):
     order = models.ForeignKey(
         Order, 
         on_delete=models.CASCADE, 
-        related_name='items' # Giúp truy vấn ngược: order.items.all()
+        related_name='items' 
     )
-    # Giả sử model Product nằm trong app 'products'
+    
     product = models.ForeignKey('products.Product', on_delete=models.CASCADE)
     
     price = models.BigIntegerField()

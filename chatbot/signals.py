@@ -23,14 +23,14 @@ def handle_bulk_order(sender, product_ids, **kwargs):
 def handle_review_change(sender, instance, **kwargs):
     if instance.product:
         print(f"Review thay đổi. Đợi commit để tính lại điểm cho: {instance.product.name}")
-        # Chờ commit xong mới chạy
+        
         transaction.on_commit(lambda: index_single_product(instance.product.id))
 
 # CẬP NHẬT PRODUCTS
 @receiver(post_save, sender=Product)
 def handle_product_save(sender, instance, **kwargs):
     print(f"Admin sửa sản phẩm {instance.name}. Đợi commit...")
-    # Chờ commit xong mới chạy
+    
     transaction.on_commit(lambda: index_single_product(instance.id))
 
 # CẬP NHẬT THÔNG SỐ KỸ THUẬT
@@ -38,7 +38,7 @@ def handle_product_save(sender, instance, **kwargs):
 def handle_spec_save(sender, instance, **kwargs):
     if instance.product:
         print(f"Spec thay đổi. Đợi commit...")
-        # Chờ commit xong mới chạy
+        
         transaction.on_commit(lambda: index_single_product(instance.product.id))
 
 # KHI XÓA SẢN PHẨM (Xóa thì không cần chờ commit vì nó bay màu rồi)

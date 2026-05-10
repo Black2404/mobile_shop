@@ -7,9 +7,7 @@ from .models import Cart, CartItem
 from .serializers import CartSerializer
 from products.models import Product
 
-# ===========================
 # 1. API VIEWS (Trả về JSON)
-# ===========================
 
 class CartAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -35,13 +33,10 @@ class AddToCartAPI(APIView):
         except:
             quantity = 1
 
-        # 1. Kiểm tra sản phẩm
         product = get_object_or_404(Product, pk=product_id)
 
-        # 2. Lấy hoặc tạo giỏ hàng cho user
         cart, _ = Cart.objects.get_or_create(user=request.user)
 
-        # 3. Thêm sản phẩm vào giỏ (hoặc cập nhật số lượng)
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
         
         if not created:
@@ -76,9 +71,7 @@ class UpdateCartItemAPI(APIView):
         # Trả về data giỏ hàng mới nhất để frontend cập nhật luôn
         return Response(CartSerializer(cart).data)
 
-# ===========================
-# 2. HTML VIEW (Trả về Giao diện)
-# ===========================
+# HTML VIEW 
 
 def cart_page(request):
     return render(request, 'carts.html')

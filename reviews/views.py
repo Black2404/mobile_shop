@@ -16,7 +16,7 @@ class ReviewPagination(pagination.PageNumberPagination):
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.select_related('user', 'product').all()
     serializer_class = ReviewSerializer
-    pagination_class = ReviewPagination # Kích hoạt phân trang
+    pagination_class = ReviewPagination
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [filters.SearchFilter] 
     search_fields = ['product__name', 'user__name', 'comment']
@@ -26,7 +26,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     # HỖ TRỢ LỌC DỮ LIỆU
     def get_queryset(self):
-    # Sử dụng self.queryset đã khai báo select_related ở trên thay vì gọi super() để tránh truy vấn lại
+    
         qs = self.queryset 
         
         p_id = self.request.query_params.get('product_id')
@@ -35,7 +35,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
             
         rating = self.request.query_params.get('rating')
         if rating:
-            # Ép kiểu để tránh lỗi nếu giá trị truyền vào không phải là số
+            
             try:
                 qs = qs.filter(rating=int(rating))
             except ValueError:
@@ -43,7 +43,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 
         return qs
     
-
+    # XÓA ĐÁNH GIÁ
     def destroy(self, request, *args, **kwargs):
         review = self.get_object()
 

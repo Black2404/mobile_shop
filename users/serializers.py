@@ -11,7 +11,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'email', 'password', 'address']
 
     def create(self, validated_data):
-        # Dùng create_user để mật khẩu được mã hóa
         return User.objects.create_user(**validated_data)
 
 class LoginSerializer(serializers.Serializer):
@@ -19,7 +18,7 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        # authenticate kiểm tra email, password và cả is_active
+       
         user = authenticate(email=data['email'], password=data['password'])
 
         if not user:

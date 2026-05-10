@@ -20,14 +20,12 @@ class StandardResultsSetPagination(PageNumberPagination):
 
 class ProductListAPI(APIView):
     def get(self, request):
-        # Lấy tham số tìm kiếm và lọc hãng từ URL (nếu có)
+       
         search_query = request.GET.get('search', '')
         brand_query = request.GET.get('brand', '')
 
-        # Query gốc
         products = Product.objects.all().order_by('-id')
 
-        # Xử lý lọc dữ liệu 
         if search_query:
             products = products.filter(name__icontains=search_query)
         if brand_query and brand_query != "-- Tất cả hãng --":
@@ -38,8 +36,7 @@ class ProductListAPI(APIView):
         result_page = paginator.paginate_queryset(products, request)
         
         serializer = ProductSerializer(result_page, many=True)
-        
-        # Trả về kết quả kèm thông tin phân trang (count, next, previous, results)
+
         return paginator.get_paginated_response(serializer.data)
 
 class ProductDetailAPI(APIView):
@@ -51,10 +48,9 @@ class HomeProductAPI(APIView):
     def get(self, request):
         products = Product.objects.order_by('-id')[:5]
         return Response(ProductSerializer(products, many=True).data)
-    #.data -> trả về dạng dictionary
 
 # ADMIN
-# 1. API LẤY DANH SÁCH & TẠO MỚI
+# API LẤY DANH SÁCH & TẠO MỚI
 class AdminProductListView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
@@ -64,13 +60,12 @@ class AdminProductListView(APIView):
             return Response({"error": "Forbidden"}, status=403)
         
         products = Product.objects.all().order_by('-id')
-        
-        # Áp dụng phân trang 10 sản phẩm/trang từ class StandardResultsSetPagination
+
         paginator = StandardResultsSetPagination() 
         result_page = paginator.paginate_queryset(products, request)
         serializer = ProductSerializer(result_page, many=True)
         
-        # Trả về dữ liệu có cấu trúc: { count, next, previous, results }
+        
         return paginator.get_paginated_response(serializer.data)
 
     # Tạo mới sản phẩm (POST)
@@ -80,8 +75,7 @@ class AdminProductListView(APIView):
         
         try:
             data = request.data
-            
-            # 1. Tạo Product
+
             brand_id = data.get('brand')
             brand_obj = None
             if brand_id:
@@ -95,7 +89,6 @@ class AdminProductListView(APIView):
                 created_at=timezone.now()
             )
 
-            # 2. Tạo ProductSpec (Thông số kỹ thuật)
             ProductSpec.objects.create(
                 product=new_p,
                 screen=data.get('screen', ''),
@@ -107,7 +100,6 @@ class AdminProductListView(APIView):
                 os=data.get('os', '')
             )
 
-            # 3. Lưu ảnh (ProductImage)
             image_file = request.FILES.get('image')
             if image_file:
                 fs = FileSystemStorage(location='static/images')
@@ -123,18 +115,15 @@ class AdminProductDetailView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
 
-    # Lấy chi tiết sản phẩm để hiển thị 
     def get(self, request, pk):
         if getattr(request.user, 'role', '') != 'admin': 
             return Response({"error": "Forbidden"}, status=403)
             
         p = get_object_or_404(Product, pk=pk)
         
-        # Lấy ảnh
         first_img = ProductImage.objects.filter(product=p).first()
         img_url = f"/static/images/{first_img.image_url}" if first_img else ""
 
-        # Lấy thông số kỹ thuật
         spec_data = {}
         spec = ProductSpec.objects.filter(product=p).first()
         if spec:
@@ -168,7 +157,6 @@ class AdminProductDetailView(APIView):
             p = get_object_or_404(Product, pk=pk)
             data = request.data
             
-            # 1. Update Product
             p.name = data.get('name', p.name)
             p.price = data.get('price', p.price)
             p.description = data.get('description', p.description)
@@ -179,7 +167,6 @@ class AdminProductDetailView(APIView):
                 if brand_obj: p.brand = brand_obj
             p.save()
 
-            # 2. Update Spec
             spec_defaults = {
                 "screen": data.get('screen', ''),
                 "cpu": data.get('cpu', ''),
@@ -189,13 +176,12 @@ class AdminProductDetailView(APIView):
                 "camera": data.get('camera', ''),
                 "os": data.get('os', '')
             }
-            # update_or_create: nếu chưa có thì tạo mới, có rồi thì update
+
             ProductSpec.objects.update_or_create(product=p, defaults=spec_defaults)
             
-            # 3. Update Image
             image_file = request.FILES.get('image')
             if image_file:
-                ProductImage.objects.filter(product=p).delete() # Xóa ảnh cũ
+                ProductImage.objects.filter(product=p).delete()
                 fs = FileSystemStorage(location='static/images')
                 filename = fs.save(image_file.name, image_file)
                 ProductImage.objects.create(product=p, image_url=filename)

@@ -1,12 +1,12 @@
 from django.db import connection
 from chatbot.rag.embedder import embed_text
 
-def search_products(query: str, k: int = 5):
-    # 1. Mã hóa câu hỏi thành vector ngay tại đây
+def search_products(query: str, k: int = 3):
+    # Mã hóa câu hỏi thành vector ngay tại đây
     query_embedding = embed_text(query)
 
     with connection.cursor() as cursor:
-        # 2. Truy vấn SQL: JOIN giữa bảng vector và bảng products
+        # Truy vấn SQL: JOIN giữa bảng vector và bảng products
         cursor.execute("""
             SELECT
                 p.id,

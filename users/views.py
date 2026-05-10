@@ -42,7 +42,6 @@ class UserProfileView(APIView):
 
     def put(self, request):
         user = request.user
-        # partial=True cho phép cập nhật không cần gửi đủ tất cả các trường
         serializer = UserUpdateSerializer(user, data=request.data, partial=True)
         
         if serializer.is_valid():
@@ -59,22 +58,18 @@ class AdminStatsView(APIView):
         if request.user.role != 'admin' and not request.user.is_superuser:
             return Response(status=403)
 
-        # 1. User Stats
         total_users = User.objects.count()
         last_month = timezone.now() - timedelta(days=30)
         new_users = User.objects.filter(created_at__gte=last_month).count()
         active_users = User.objects.filter(is_active=True).count()
         admin_count = User.objects.filter(role='admin').count()
 
-        # 2. Product Stats
         total_products = Product.objects.count()
         active_products = total_products 
 
-        # 3. Order Stats 
         total_orders = Order.objects.count()
         pending_orders = Order.objects.filter(status='PENDING').count()
 
-        # 4. Review Stats
         total_reviews = Review.objects.count()
         avg_rating_data = Review.objects.aggregate(Avg('rating'))
         avg_rating = round(avg_rating_data['rating__avg'] or 0, 1)
@@ -115,7 +110,7 @@ class AdminUserDetailView(APIView):
         if request.user.role != 'admin':
             return Response(status=403)
         user = self.get_object(pk)
-        # Tái sử dụng UserProfileView logic hoặc trả về data trực tiếp
+
         data = {
             "id": user.id,
             "name": user.name,
@@ -143,7 +138,6 @@ class AdminUserDetailView(APIView):
         
         user = self.get_object(pk)
         
-        # Ngăn admin tự xóa chính mình
         if user.id == request.user.id:
              return Response({"error": "Không thể tự xóa tài khoản đang đăng nhập"}, status=400)
 
@@ -160,7 +154,7 @@ class AdminOrderListView(APIView):
         for o in orders:
             data.append({
                 'id': o.id,
-                'user__name': o.user.name if o.user else "Unknown", # Truy cập quan hệ FK
+                'user__name': o.user.name if o.user else "Unknown", 
                 'total_price': o.total_price,
                 'status': o.status,
                 'created_at': o.created_at
